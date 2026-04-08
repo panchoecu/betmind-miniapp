@@ -123,15 +123,7 @@ input  { font-family: inherit; }
 }
 .brand-name .accent { color: var(--red); }
 .brand-name .brand-ai {
-  font-family: var(--fm);
-  font-size: 9px;
-  color: var(--gold);
-  letter-spacing: 3px;
-  margin-left: 8px;
-  padding: 3px 8px;
-  border: 1px solid var(--gold-border);
-  border-radius: 4px;
-  background: var(--gold-dim);
+  display: none;
 }
 .plan-badge {
   font-family: var(--fm);
@@ -375,7 +367,7 @@ input  { font-family: inherit; }
   color: var(--t1);
   margin-bottom: 8px;
 }
-.stat-value.r { color: var(--red); }
+.stat-value.r { color: var(--green); }
 .stat-value.g { color: var(--green); }
 .stat-sub {
   font-family: var(--fm);
@@ -716,7 +708,7 @@ input  { font-family: inherit; }
 .stats-big-row { display: flex; align-items: center; margin-bottom: 20px; }
 .stats-big-item { flex: 1; text-align: center; }
 .stats-big-num { font-family: var(--ft); font-size: 44px; line-height: 1; color: var(--t1); margin-bottom: 6px; }
-.stats-big-num.r { color: var(--red); }
+.stats-big-num.r { color: var(--green); }
 .stats-big-num.g { color: var(--green); }
 .stats-big-label { font-family: var(--fm); font-size: 8px; letter-spacing: 2px; color: var(--t3); text-transform: uppercase; }
 .stats-divider { width: 1px; height: 56px; background: var(--bg-3); }
@@ -748,7 +740,7 @@ input  { font-family: inherit; }
 .chart-col { display: flex; flex-direction: column; align-items: center; height: 100%; flex: 1; justify-content: flex-end; position: relative; }
 .chart-pct { font-family: var(--fm); font-size: 9px; color: var(--gold); margin-bottom: 5px; font-weight: 600; }
 .chart-bar-wrap { width: 24px; height: 70px; background: var(--bg-3); border-radius: 4px 4px 0 0; display: flex; align-items: flex-end; overflow: hidden; margin-bottom: 5px; }
-.chart-bar { width: 100%; background: linear-gradient(180deg, var(--red), var(--burgundy)); border-radius: 4px 4px 0 0; min-height: 3px; transition: height .8s cubic-bezier(.4,0,.2,1); }
+--t3: #A8C840;
 .chart-label { font-family: var(--fm); font-size: 8px; color: var(--t3); position: absolute; bottom: 0; }
 .stats-verified { font-family: var(--fm); font-size: 10px; color: var(--t3); text-align: center; padding: 12px var(--px); }
 
