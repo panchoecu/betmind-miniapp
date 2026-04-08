@@ -178,7 +178,7 @@ function LogoBM({ size = 36 }) {
     <img
       src="/Betmind logo oficial.jpeg"
       alt="BetMind AI"
-      style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover', objectPosition: 'left center' }}
+      style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover', objectPosition: '25% center' }}
     />
   )
 }
