@@ -175,11 +175,19 @@ function AnimNum({ value, suffix = '', dec = 0 }) {
 // ═══════════════════════════════════════════════════
 function LogoBM({ size = 36 }) {
   return (
-    <img
-      src="/Betmind logo oficial.jpeg"
-      alt="BetMind AI"
-      style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover', objectPosition: '25% center' }}
-    />
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <rect width="40" height="40" rx="9" fill="#0D0005"/>
+      <rect width="40" height="40" rx="9" fill="#8B0020" fillOpacity=".15"/>
+      <text x="3" y="28" fontFamily="Bebas Neue,sans-serif" fontSize="24" fill="#C41830" letterSpacing="1" fontWeight="900">BM</text>
+      <line x1="3" y1="32" x2="37" y2="32" stroke="#C41830" strokeWidth="1" opacity=".5"/>
+      <circle cx="30" cy="8" r="1.5" fill="#C41830" opacity=".7"/>
+      <circle cx="35" cy="12" r="1" fill="#C41830" opacity=".5"/>
+      <circle cx="33" cy="6" r="1" fill="#C41830" opacity=".4"/>
+      <line x1="30" y1="8" x2="35" y2="12" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
+      <line x1="30" y1="8" x2="33" y2="6" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
+      <line x1="8" y1="8" x2="14" y2="8" stroke="#C41830" strokeWidth=".5" opacity=".3"/>
+      <circle cx="8" cy="8" r="1" fill="#C41830" opacity=".4"/>
+    </svg>
   )
 }
 
