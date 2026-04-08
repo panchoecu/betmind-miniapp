@@ -30,7 +30,7 @@ const MOCK_PICKS = [
     analisis:[
       { t:'🏠 Local — Barcelona', txt:'Excelente forma (4V-1E últimos 5). Pedri y Gavi recuperados. En el Camp Nou: 8 victorias en los últimos 10 como local.' },
       { t:'✈️ Visitante — Atlético Madrid', txt:'Irregular fuera de casa (2V-2E-1D últimos 5). Sin Griezmann por sanción. Defensa compacta pero vulnerable en transiciones.' },
-      { t:'⚽ Head to Head', txt:'Últimos 10: Barcelona 6V · Empates 2 · Atlético 2. En Camp Nou el balance es 7-1-2 en la última década.' },
+      { t:'⚽ Head to Head', txt:'Últimos 10: Barcelona 6V · Empates 2 · Atlético 2. En Camp Nou 7-1-2 en la última década.' },
       { t:'📊 Probabilidades Poisson', txt:'Local 54% · Empate 22% · Visitante 24% · BTTS 68% · Over 2.5: 61%.' },
       { t:'🔑 Factores clave', txt:'Recuperación de Pedri y Gavi · Ausencia de Griezmann · Value positivo @1.85 con EV +7.2%' },
     ],
@@ -138,10 +138,13 @@ async function fetchDailyTips() {
   } catch { return null }
 }
 
-const confIcon  = (c) => c >= 80 ? '🔥' : c >= 70 ? '✅' : '⚡'
-const confColor = (c) => c >= 80 ? 'var(--green)' : c >= 70 ? 'var(--gold)' : 'var(--red)'
+const confLevel = (c) => c >= 78 ? 'HIGH' : c >= 68 ? 'MEDIUM' : 'LOW'
+const confClass = (c) => c >= 78 ? 'high' : c >= 68 ? 'mid' : 'low'
+const confColor = (c) => c >= 78 ? 'var(--green)' : c >= 68 ? 'var(--gold)' : 'var(--orange)'
 const confBar   = (c) => '█'.repeat(Math.floor(c / 10)) + '░'.repeat(10 - Math.floor(c / 10))
-const staking   = (c, ev) => {
+const aiEdge    = (ev, conf) => ((ev * 0.4 + conf * 0.06)).toFixed(1)
+
+const staking = (c, ev) => {
   if (ev >= 10 && c >= 75) return '3 unidades'
   if (c >= 75 || ev >= 7)  return '2 unidades'
   if (c >= 65)             return '1.5 unidades'
@@ -173,21 +176,44 @@ function AnimNum({ value, suffix = '', dec = 0 }) {
 }
 
 // ═══════════════════════════════════════════════════
-//  CONFIDENCE BAR COMPONENT
+//  CONFIDENCE BAR
 // ═══════════════════════════════════════════════════
 function ConfBar({ value }) {
-  const color = value >= 80 ? 'high' : value >= 70 ? 'mid' : 'low'
+  const cls = confClass(value)
   return (
     <div className="prob-bar-wrap">
       <div className="prob-bar-track">
-        <div
-          className={`prob-bar-fill ${color}`}
-          style={{ width: `${value}%` }}
-        />
+        <div className={`prob-bar-fill ${cls}`} style={{ width: `${value}%` }} />
       </div>
       <span className="prob-bar-pct" style={{ color: confColor(value) }}>
-        {confIcon(value)} {value}%
+        {value}%
       </span>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════
+//  AI EDGE BADGE
+// ═══════════════════════════════════════════════════
+function AIEdgeBadge({ ev, conf }) {
+  const edge = aiEdge(ev, conf)
+  const level = confLevel(conf)
+  return (
+    <div className="ai-edge-badge">
+      <div className="ai-edge-item">
+        <div className="ai-edge-label">AI EDGE</div>
+        <div className="ai-edge-value">{edge}/10</div>
+      </div>
+      <div className="ai-edge-sep" />
+      <div className="ai-edge-item">
+        <div className="ai-edge-label">Confidence</div>
+        <div className="ai-edge-value">{level}</div>
+      </div>
+      <div className="ai-edge-sep" />
+      <div className="ai-edge-item">
+        <div className="ai-edge-label">EV Edge</div>
+        <div className="ai-edge-value">+{ev}%</div>
+      </div>
     </div>
   )
 }
@@ -222,6 +248,9 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
     conf: p.conf || p.confidence,
   }))
 
+  const topPick = allPicks[0]
+  const restPicks = allPicks.slice(1, isPremium ? 3 : 2)
+
   return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
@@ -229,15 +258,15 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
       <div className="home-datebar">
         <span>{TODAY}</span>
         <span>·</span>
-        <span className="hl">⚡ {MOCK_PICKS.length} picks listos hoy</span>
+        <span className="hl">✅ {allPicks.length} picks verificados hoy</span>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">ACIERTOS</div>
           <div className="stat-value r"><AnimNum value={s.pct} suffix="%" dec={1} /></div>
-          <div className="stat-sub">{s.ganados}W · {s.perdidos}L · {s.mes}</div>
+          <div className="stat-sub">{s.ganados}W · {s.perdidos}L</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">YIELD</div>
@@ -258,16 +287,33 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
         </div>
       </div>
 
-      <div className="section-label">TOP PICKS DE HOY</div>
+      {/* TOP PICK */}
+      <div className="section-label">🔥 TOP PICK DEL DÍA</div>
+      {topPick && (
+        <div className="top-pick-card" onClick={() => onGoToPicks(0)}>
+          <div className="top-pick-badge">🔥 TOP PICK · HIGH CONFIDENCE</div>
+          <div className="top-pick-league">{topPick.league} · {topPick.time} UTC</div>
+          <div className="top-pick-teams">
+            {topPick.home} <span style={{color:'var(--t3)', fontWeight:300}}>vs</span> {topPick.away}
+          </div>
+          <div className="top-pick-info">
+            <span className="top-pick-pick">{topPick.pick}</span>
+            <span className="top-pick-odd">@{topPick.odd}</span>
+          </div>
+          <AIEdgeBadge ev={topPick.ev} conf={topPick.conf} />
+        </div>
+      )}
 
+      {/* More Picks */}
+      <div className="section-label">PICKS DESTACADOS</div>
       <div className="preview-picks">
-        {allPicks.slice(0, isPremium ? 3 : 2).map((p, i) => {
-          const locked = !isPremium && i >= 2
+        {restPicks.map((p, i) => {
+          const locked = !isPremium && i >= 1
           return (
             <div
               key={p.id}
               className={`preview-card ${locked ? 'locked' : ''}`}
-              onClick={() => !locked && onGoToPicks(i)}
+              onClick={() => !locked && onGoToPicks(i + 1)}
             >
               <div className="preview-teams">
                 {p.home}<span className="vs">vs</span>{p.away}
@@ -283,7 +329,7 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
                     <span className="preview-pick">{p.pick}</span>
                     <span className="preview-odd">@{p.odd}</span>
                     <span className="preview-conf" style={{ color: confColor(p.conf) }}>
-                      {confIcon(p.conf)} {p.conf}%
+                      {p.conf}%
                     </span>
                   </>
                 )}
@@ -355,18 +401,18 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
 
   const mainPicks = (realPicksProp || MOCK_PICKS).map((p, i) => ({
     ...p,
-    home:       p.home || p.home_team,
-    away:       p.away || p.away_team,
-    locked:     !isPremium && i >= 2,
-    pick:       p.pick || p.pick_principal,
-    conf:       p.conf || p.confidence,
-    conservador:p.conservador || p.pick_conservador,
-    analisis:   p.analisis || (p.analysis ? [{ t:'📊 Análisis', txt: p.analysis.trim() }] : []),
+    home:        p.home || p.home_team,
+    away:        p.away || p.away_team,
+    locked:      !isPremium && i >= 2,
+    pick:        p.pick || p.pick_principal,
+    conf:        p.conf || p.confidence,
+    conservador: p.conservador || p.pick_conservador,
+    analisis:    p.analisis || (p.analysis ? [{ t:'📊 Análisis', txt: p.analysis.trim() }] : []),
   }))
 
   const picks = tab === 'risky' ? MOCK_RISKY : mainPicks
 
-  const openDetail  = (i) => { setSelIdx(i); setView('detail') }
+  const openDetail   = (i) => { setSelIdx(i); setView('detail') }
   const openAnalysis = ()  => setView('analysis')
   const backToList   = ()  => { setView('list'); setSelIdx(null) }
   const backToDetail = ()  => setView('detail')
@@ -378,10 +424,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
       <div className="screen-title">PICKS DEL DÍA</div>
 
       <div className="picks-tabs">
-        <button
-          className={`tab-btn ${tab === 'main' ? 'active' : ''}`}
-          onClick={() => setTab('main')}
-        >
+        <button className={`tab-btn ${tab === 'main' ? 'active' : ''}`} onClick={() => setTab('main')}>
           Principales · {MOCK_PICKS.length}
         </button>
         <button
@@ -395,14 +438,18 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
       <div className="picks-list">
         {picks.map((p, i) => {
           const locked = p.locked && !isPremium
+          const isTop = i === 0 && tab === 'main'
           return (
             <div
               key={p.id}
               className={`pick-card ${locked ? 'locked' : ''}`}
+              style={isTop ? { borderLeftColor:'var(--green)', boxShadow:'var(--green-glow)' } : {}}
               onClick={() => openDetail(i)}
             >
               <div className="pick-card-top">
-                <span className="pick-league">{p.league}</span>
+                <span className="pick-league">
+                  {isTop ? '🔥 TOP · ' : ''}{p.league}
+                </span>
                 <span className="pick-time">🕐 {p.time} UTC</span>
               </div>
               <div className="pick-teams">
@@ -460,7 +507,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
               Activa Premium para ver el pick completo,<br />
               pick conservador y análisis de 7 agentes IA.
             </div>
-            <div className="locked-odds">Cuota: @{p.odd} · Confianza: {p.conf}%</div>
+            <div className="locked-odds">Cuota: @{p.odd} · Conf: {p.conf}%</div>
             <button className="btn-primary" onClick={onGoToPremium}>👑 VER PLANES PREMIUM</button>
           </div>
         ) : (
@@ -468,7 +515,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
             <div className="data-box">
               <div className="data-row">
                 <span className="data-label">PICK PRINCIPAL</span>
-                <span className="data-value r">{p.pick}</span>
+                <span className="data-value o">{p.pick}</span>
               </div>
               <div className="data-row">
                 <span className="data-label">PICK CONSERVADOR</span>
@@ -498,12 +545,16 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
               </div>
             </div>
 
+            <AIEdgeBadge ev={p.ev} conf={p.conf} />
+
+            <div style={{ height: 14 }} />
+
             <button className="analysis-cta" onClick={openAnalysis}>
               <div className="analysis-cta-left">
                 <span className="analysis-cta-icon">📋</span>
                 <div>
                   <div className="analysis-cta-title">VER ANÁLISIS COMPLETO</div>
-                  <div className="analysis-cta-sub">Forma · H2H · Lesiones · Poisson · 7 Agentes IA</div>
+                  <div className="analysis-cta-sub">Forma · H2H · Poisson · 7 Agentes IA</div>
                 </div>
               </div>
               <span className="analysis-cta-arrow">›</span>
@@ -529,7 +580,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
         </div>
 
         <div className="analysis-title">ANÁLISIS COMPLETO</div>
-        <div className="analysis-meta">Pipeline de 7 agentes IA · {p.league} · {p.time} UTC</div>
+        <div className="analysis-meta">Pipeline 7 agentes IA · {p.league} · {p.time} UTC</div>
 
         {locked ? (
           <div className="analysis-locked-box">
@@ -592,7 +643,7 @@ function StatsScreen({ isPremium }) {
       <div className="screen-title">TRACK RECORD</div>
 
       <div className="stats-month-card">
-        <div className="stats-month-label">{s.mes} — estadísticas verificadas</div>
+        <div className="stats-month-label">✅ {s.mes} — verificado</div>
         <div className="stats-big-row">
           <div className="stats-big-item">
             <div className="stats-big-num r">{s.pct}%</div>
@@ -630,7 +681,7 @@ function StatsScreen({ isPremium }) {
           </div>
         ))}
       </div>
-      <div className="stats-verified">✅ Verificado con API-Football Pro · Actualizado nightly 23:00</div>
+      <div className="stats-verified">✅ Verificado API-Football Pro · Actualizado nightly 23:00</div>
 
       <div className="history-table">
         <div className="history-table-header">
@@ -668,9 +719,9 @@ function PremiumScreen({ isPremium, chatId }) {
             ['📅', 'Picks diarios completos', '10+ picks con análisis por jornada'],
             ['🎲', 'Cuotas Altas', 'Picks de alto valor desbloqueados'],
             ['⚡', 'Análisis on-demand', '15 análisis por día con pipeline IA'],
-            ['📋', 'Análisis completo', 'Forma · H2H · Poisson · Factores clave'],
+            ['📋', 'Análisis completo', 'Forma · H2H · Poisson · 7 Agentes'],
             ['⚽', 'Todos los mercados', '1X2 · BTTS · Over/Under · Doble Chance'],
-            ['📊', 'Track record', 'Historial completo verificado con datos reales'],
+            ['📊', 'Track record', 'Historial verificado con datos reales'],
           ].map(([icon, title, sub], i) => (
             <div key={i} className="premium-perk-row">
               <span className="premium-perk-icon">{icon}</span>
@@ -715,6 +766,7 @@ function PremiumScreen({ isPremium, chatId }) {
           ['Cuotas Altas',        '🔒',    '✅'],
           ['Análisis on-demand',  '1/día', '15/día'],
           ['BTTS & Over/Under',   '🔒',    '✅'],
+          ['AI Edge badge',       '🔒',    '✅'],
           ['Staking & Edge (EV)', '🔒',    '✅'],
           ['Track record',        '✅',    '✅'],
         ].map(([feat, free, prem], i) => (
@@ -790,7 +842,6 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
   const [result,  setResult]  = useState(null)
   const remaining = isPremium ? 15 : 1
   const stepRef = useRef(null)
-
   const canAnalyze = input.toLowerCase().includes('vs') && input.trim().length > 6
 
   const handleAnalyze = async () => {
@@ -816,7 +867,6 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
       setResult({
         home, away,
         pick:      data.pick_principal || 'Local',
-        conservador: data.pick_conservador || '',
         confianza: data.confianza || 73,
         ev:        data.value_edge || 6.2,
         odd:       data.odd_pick || 1.85,
@@ -835,7 +885,7 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
       <AppHeader isPremium={isPremium} />
       <div className="screen-title">ANÁLISIS ON-DEMAND</div>
       <div className="analyze-remaining">
-        ⚡ {remaining} análisis restantes hoy · Pipeline de 7 agentes IA
+        ✅ {remaining} análisis restantes · Pipeline de 7 agentes IA
       </div>
 
       <div className="analyze-form">
@@ -874,7 +924,7 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
           <div className="data-box" style={{ borderRadius:0, border:'none', borderTop:'1px solid var(--bg-3)', margin:0 }}>
             <div className="data-row">
               <span className="data-label">PICK</span>
-              <span className="data-value r">{result.pick}</span>
+              <span className="data-value o">{result.pick}</span>
             </div>
             <div className="data-row">
               <span className="data-label">CUOTA</span>
@@ -895,6 +945,9 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
               <span className="data-value">💰 {staking(result.confianza, result.ev)}</span>
             </div>
           </div>
+          <div style={{ padding:'14px 18px' }}>
+            <AIEdgeBadge ev={result.ev} conf={result.confianza} />
+          </div>
           {isPremium && result.analisis ? (
             <div className="result-analysis-text">
               <RenderAnalysis text={result.analisis} />
@@ -902,7 +955,7 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
           ) : (
             <div className="result-locked-note">
               🔒 Análisis completo disponible con Premium<br />
-              <span style={{ color:'var(--red)', cursor:'pointer' }} onClick={onGoToPremium}>
+              <span style={{ color:'var(--orange)', cursor:'pointer' }} onClick={onGoToPremium}>
                 Ver planes →
               </span>
             </div>
@@ -998,7 +1051,6 @@ export default function App() {
         {screen === 'analyze' && <AnalyzeScreen isPremium={isPremium} onGoToPremium={goToPremium} />}
       </div>
       <BottomNav active={screen} onNav={handleNav} />
-      {/* DEV TOGGLE — eliminar en producción */}
       <button className="dev-toggle" onClick={() => setIsPremium(p => !p)}>
         {isPremium ? '→ FREE' : '→ PRO'}
       </button>
