@@ -585,16 +585,16 @@ function StatsScreen({ isPremium }) {
 
   useEffect(() => {
     fetchTrackRecord().then(data => {
-      if (!data) return
+      if (!data || !data.available) return
       setStats({
         mes: data.mes || MOCK_STATS.mes,
-        ganados: data.ganados ?? MOCK_STATS.ganados,
-        perdidos: data.perdidos ?? MOCK_STATS.perdidos,
+        ganados: data.wins ?? MOCK_STATS.ganados,
+        perdidos: (data.total - data.wins) ?? MOCK_STATS.perdidos,
         total: data.total ?? MOCK_STATS.total,
         pct: data.pct ?? MOCK_STATS.pct,
-        yield: data.yield_pct ?? MOCK_STATS.yield,
-        racha: data.racha ?? MOCK_STATS.racha,
-        pendientes: data.pendientes ?? 0,
+        yield: data.avg_roi ?? MOCK_STATS.yield,
+        racha: data.streak ?? MOCK_STATS.racha,
+        pendientes: 0,
       })
     })
   }, [])
