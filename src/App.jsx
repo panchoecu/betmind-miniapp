@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import WebApp from '@twa-dev/sdk'
 const API_URL = 'https://webhook.tuagentevirtual.info'
 
 // ═══════════════════════════════════════════════════
@@ -951,6 +952,24 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false)
   const [pickIdx,   setPickIdx]   = useState(null)
   const [realPicks, setRealPicks] = useState(null)
+  const [chatId,    setChatId]    = useState(null)
+
+  useEffect(() => {
+    WebApp.ready()
+    const user = WebApp.initDataUnsafe?.user
+    if (user?.id) {
+      setChatId(user.id)
+      fetch(`${API_URL}/user/${user.id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.plan === 'premium' && data.premium_until) {
+            const exp = new Date(data.premium_until)
+            if (exp > new Date()) setIsPremium(true)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     fetchDailyTips().then(picks => {
