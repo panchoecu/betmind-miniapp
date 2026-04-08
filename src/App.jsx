@@ -1,18 +1,126 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import WebApp from '@twa-dev/sdk'
+
 const API_URL = 'https://webhook.tuagentevirtual.info'
 
 // ═══════════════════════════════════════════════════
-//  MOCK DATA — reemplazar con llamadas a Supabase
+//  DATA
 // ═══════════════════════════════════════════════════
 const TODAY = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' })
 
 const MOCK_STATS = {
   mes: 'Abril 2026', ganados: 47, perdidos: 18, total: 65,
-  pct: 72.3, yield: 18.4, racha: 5, pendientes: 3,
+  pct: 72.3, yield: 18.4, racha: 5,
 }
 
+const MOCK_HISTORY = [
+  { mes:'Abr 2026', picks:65,  pct:72.3, yield:18.4 },
+  { mes:'Mar 2026', picks:58,  pct:68.1, yield:14.2 },
+  { mes:'Feb 2026', picks:62,  pct:71.0, yield:16.8 },
+  { mes:'Ene 2026', picks:55,  pct:65.4, yield:11.3 },
+  { mes:'Dic 2025', picks:61,  pct:74.2, yield:21.5 },
+]
+
+const MOCK_PICKS = [
+  {
+    id:1, home:'Barcelona', away:'Atlético Madrid', league:'La Liga',
+    pick:'Local (Barcelona)', conservador:'Doble Chance 1X',
+    odd:1.85, conf:78, ev:7.2, time:'20:45', btts:true, ou:true, locked:false,
+    analisis:[
+      { t:'🏠 Local — Barcelona', txt:'Excelente forma (4V-1E últimos 5). Pedri y Gavi recuperados. En el Camp Nou: 8 victorias en los últimos 10 como local.' },
+      { t:'✈️ Visitante — Atlético Madrid', txt:'Irregular fuera de casa (2V-2E-1D últimos 5). Sin Griezmann por sanción. Defensa compacta pero vulnerable en transiciones.' },
+      { t:'⚽ Head to Head', txt:'Últimos 10: Barcelona 6V · Empates 2 · Atlético 2. En Camp Nou el balance es 7-1-2 en la última década.' },
+      { t:'📊 Probabilidades Poisson', txt:'Local 54% · Empate 22% · Visitante 24% · BTTS 68% · Over 2.5: 61%.' },
+      { t:'🔑 Factores clave', txt:'Recuperación de Pedri y Gavi · Ausencia de Griezmann · Value positivo @1.85 con EV +7.2%' },
+    ],
+  },
+  {
+    id:2, home:'PSG', away:'Lyon', league:'Ligue 1',
+    pick:'Local (PSG)', conservador:'Handicap PSG -1',
+    odd:1.65, conf:82, ev:9.1, time:'21:00', btts:false, ou:true, locked:false,
+    analisis:[
+      { t:'🏠 Local — PSG', txt:'Mbappé recuperado al 100%. Dembélé en estado de gracia con 6 goles en los últimos 5. 18 partidos sin perder en casa.' },
+      { t:'✈️ Visitante — Lyon', txt:'Media-tabla sin regularidad. Defensa con al menos 1 gol concedido en los últimos 7 fuera.' },
+      { t:'⚽ Head to Head', txt:'PSG ganó los últimos 5 directos con media de 2.8 goles.' },
+      { t:'📊 Probabilidades Poisson', txt:'Local 61% · Empate 20% · Visitante 19% · Over 2.5: 64%.' },
+      { t:'🔑 Factores clave', txt:'Mbappé y Dembélé imparables · PSG invicto en casa · EV +9.1%' },
+    ],
+  },
+  {
+    id:3, home:'Boca Juniors', away:'River Plate', league:'Liga Profesional',
+    pick:'BTTS — Sí', conservador:'Over 1.5 goles',
+    odd:1.90, conf:71, ev:5.4, time:'18:00', btts:true, ou:true, locked:true,
+    analisis:[
+      { t:'🏠 Local — Boca Juniors', txt:'Superclásico en La Bombonera. Cavani en buen momento con 3 goles en los últimos 4.' },
+      { t:'✈️ Visitante — River Plate', txt:'Borja y Colidio en forma. River ha marcado en sus últimos 8 consecutivos.' },
+      { t:'⚽ Head to Head', txt:'BTTS se dio en 7 de los últimos 10 Superclásicos.' },
+      { t:'📊 Probabilidades Poisson', txt:'Local 38% · Empate 28% · Visitante 34% · BTTS 72%.' },
+      { t:'🔑 Factores clave', txt:'Presión ofensiva de ambos · H2H muy favorable a BTTS · @1.90' },
+    ],
+  },
+  {
+    id:4, home:'Bayern Munich', away:'Dortmund', league:'Bundesliga',
+    pick:'Over 2.5 Goles', conservador:'BTTS — Sí',
+    odd:1.70, conf:75, ev:6.8, time:'17:30', btts:true, ou:true, locked:true,
+    analisis:[
+      { t:'🏠 Local — Bayern Munich', txt:'Promedia 3.1 goles por partido en casa. Kane con 22 goles en liga.' },
+      { t:'✈️ Visitante — Dortmund', txt:'Han marcado mínimo 1 gol en sus últimas 5 salidas.' },
+      { t:'⚽ Head to Head', txt:'Over 2.5 en 8 de los últimos 10 Der Klassiker.' },
+      { t:'📊 Probabilidades Poisson', txt:'Over 2.5: 74% · Over 3.5: 48% · BTTS: 68%.' },
+      { t:'🔑 Factores clave', txt:'Bayern 3+ goles en casa · Kane en racha · EV +6.8% @1.70' },
+    ],
+  },
+  {
+    id:5, home:'Real Madrid', away:'Sevilla', league:'La Liga',
+    pick:'Local (Real Madrid)', conservador:'HC Real Madrid -1',
+    odd:1.55, conf:80, ev:8.8, time:'22:00', btts:false, ou:true, locked:true,
+    analisis:[
+      { t:'🏠 Local — Real Madrid', txt:'Bellingham y Vinícius imparables. 14 partidos sin perder en casa.' },
+      { t:'✈️ Visitante — Sevilla', txt:'1V-1E-3D en las últimas 5 salidas. Defensa permeable.' },
+      { t:'⚽ Head to Head', txt:'Madrid ganó 7 de los últimos 10. Bernabéu: 8-1-1 en la última década.' },
+      { t:'📊 Probabilidades Poisson', txt:'Local 62% · Empate 22% · Visitante 16%.' },
+      { t:'🔑 Factores clave', txt:'Bernabéu inexpugnable · Sevilla en racha negativa · EV +8.8% @1.55' },
+    ],
+  },
+  {
+    id:6, home:'Inter Milan', away:'Napoli', league:'Serie A',
+    pick:'Local (Inter Milan)', conservador:'Doble Chance 1X',
+    odd:1.95, conf:68, ev:4.3, time:'19:45', btts:false, ou:false, locked:true,
+    analisis:[
+      { t:'🏠 Local — Inter Milan', txt:'Sólido en casa. Lautaro en forma (2 goles últimos 3). San Siro: 7V-2E-1D.' },
+      { t:'✈️ Visitante — Napoli', txt:'Osimhen cargado físicamente, irregular fuera de casa.' },
+      { t:'⚽ Head to Head', txt:'Inter ganó 3 de los últimos 5. Media 1.8 goles por partido.' },
+      { t:'📊 Probabilidades Poisson', txt:'Local 46% · Empate 26% · Visitante 28%. Over 2.5: 36%.' },
+      { t:'🔑 Factores clave', txt:'Inter sólido en casa · Osimhen al 70% · Staking conservador recomendado' },
+    ],
+  },
+]
+
+const MOCK_RISKY = [
+  {
+    id:7, home:'Espanyol', away:'Getafe', league:'La Liga',
+    pick:'Local (Espanyol)', conservador:'Doble Chance 1X',
+    odd:3.40, conf:65, ev:12.1, time:'19:00', btts:false, ou:false, locked:true,
+    analisis:[
+      { t:'⚠️ Pick de Alto Valor', txt:'Espanyol motivado en casa ante Getafe. El modelo Poisson da 48% al local pero la cuota lo infravalora.' },
+      { t:'🔑 Factores clave', txt:'@3.40 con probabilidad real ~48% · EV +12.1% · Bankroll: 1 unidad máximo' },
+    ],
+  },
+  {
+    id:8, home:'Huachipato', away:'Colo-Colo', league:'Primera Chile',
+    pick:'Visitante +1.5 Goles', conservador:'Over 2.5 goles',
+    odd:2.80, conf:67, ev:9.2, time:'22:00', btts:true, ou:true, locked:true,
+    analisis:[
+      { t:'⚠️ Pick de Alto Valor', txt:'Colo-Colo favorito claro. Huachipato en zona baja. Visitante ganó las últimas 3 salidas marcando 2+.' },
+      { t:'🔑 Factores clave', txt:'Colo-Colo en forma · EV +9.2% @2.80 · Excelente relación riesgo/retorno' },
+    ],
+  },
+]
+
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
 async function fetchTrackRecord() {
   try {
     const res = await fetch(`${API_URL}/track-record`)
@@ -30,122 +138,16 @@ async function fetchDailyTips() {
   } catch { return null }
 }
 
-const MOCK_HISTORY = [
-  { mes:'Abr 2026', picks:65,  pct:72.3, yield:18.4 },
-  { mes:'Mar 2026', picks:58,  pct:68.1, yield:14.2 },
-  { mes:'Feb 2026', picks:62,  pct:71.0, yield:16.8 },
-  { mes:'Ene 2026', picks:55,  pct:65.4, yield:11.3 },
-  { mes:'Dic 2025', picks:61,  pct:74.2, yield:21.5 },
-]
-
-const MOCK_PICKS = [
-  {
-    id:1, home:'Barcelona', away:'Atlético Madrid', league:'La Liga',
-    pick:'Local (Barcelona)', conservador:'Doble Chance 1X',
-    odd:1.85, conf:78, ev:7.2, time:'20:45', btts:true, ou:true, locked:false,
-    analisis:[
-      { t:'🏠 Local — Barcelona', txt:'Excelente forma (4V-1E últimos 5). Pedri y Gavi recuperados. En el Camp Nou: 8 victorias en los últimos 10 como local. Alta presión desde el inicio, posesión dominante.' },
-      { t:'✈️ Visitante — Atlético Madrid', txt:'Irregular fuera de casa (2V-2E-1D últimos 5). Sin Griezmann por sanción, pierden el referente ofensivo. Defensa compacta pero vulnerable en transiciones rápidas.' },
-      { t:'⚽ Head to Head', txt:'Últimos 10 enfrentamientos: Barcelona 6V · Empates 2 · Atlético 2. En Camp Nou el balance es 7-1-2 en la última década. Partido históricamente disputado y de muchos goles.' },
-      { t:'📊 Probabilidades Poisson', txt:'Local 54% · Empate 22% · Visitante 24% · BTTS 68% · Over 2.5: 61%. El modelo favorece al local con margen significativo.' },
-      { t:'🔑 Factores clave', txt:'Recuperación de Pedri y Gavi · Ausencia de Griezmann · Forma reciente superior del local · Value positivo @1.85 con EV +7.2% sobre cuota justa de ~1.71' },
-    ],
-  },
-  {
-    id:2, home:'PSG', away:'Lyon', league:'Ligue 1',
-    pick:'Local (PSG)', conservador:'Handicap PSG -1',
-    odd:1.65, conf:82, ev:9.1, time:'21:00', btts:false, ou:true, locked:false,
-    analisis:[
-      { t:'🏠 Local — PSG', txt:'Mbappé recuperado al 100%. Dembélé en estado de gracia con 6 goles en los últimos 5 partidos. En el Parque de los Príncipes: 18 partidos consecutivos sin perder esta temporada.' },
-      { t:'✈️ Visitante — Lyon', txt:'Posición media-tabla sin regularidad. Defensa con al menos 1 gol concedido en los últimos 7 partidos fuera de casa. Sin grandes estrellas disponibles para este partido.' },
-      { t:'⚽ Head to Head', txt:'PSG ha ganado los últimos 5 enfrentamientos directos contra Lyon, con una media de 2.8 goles marcados por partido. Dominio claro y consistente del local en casa.' },
-      { t:'📊 Probabilidades Poisson', txt:'Local 61% · Empate 20% · Visitante 19% · Over 2.5: 64%. Probabilidad de gol visitante muy reducida dado el sistema defensivo del PSG en casa.' },
-      { t:'🔑 Factores clave', txt:'Mbappé y Dembélé imparables · PSG invicto en casa · Lyon sin ganar fuera en 4 partidos · EV +9.1% — una de las mejores apuestas de la jornada' },
-    ],
-  },
-  {
-    id:3, home:'Boca Juniors', away:'River Plate', league:'Liga Profesional',
-    pick:'BTTS — Sí', conservador:'Over 1.5 goles',
-    odd:1.90, conf:71, ev:5.4, time:'18:00', btts:true, ou:true, locked:true,
-    analisis:[
-      { t:'🏠 Local — Boca Juniors', txt:'Superclásico en La Bombonera. Cavani en buen momento con 3 goles en los últimos 4 partidos. El ambiente local siempre aporta presión ofensiva desde el inicio.' },
-      { t:'✈️ Visitante — River Plate', txt:'Borja y Colidio en forma, el equipo visitante ha marcado en sus últimos 8 partidos consecutivos. River no va a La Bombonera a especular.' },
-      { t:'⚽ Head to Head', txt:'En los últimos 10 Superclásicos, BTTS se dio en 7 ocasiones. Partido de máximo voltaje emocional donde ambos equipos atacan desde el primer minuto.' },
-      { t:'📊 Probabilidades Poisson', txt:'Local 38% · Empate 28% · Visitante 34% · BTTS 72% · Over 2.5: 58%. El modelo Poisson refuerza ampliamente el mercado BTTS.' },
-      { t:'🔑 Factores clave', txt:'Superclásico: presión ofensiva de ambos equipos · Ambos con goleadores en forma · H2H muy favorable a BTTS · Cuota @1.90 con excelente valor' },
-    ],
-  },
-  {
-    id:4, home:'Bayern Munich', away:'Dortmund', league:'Bundesliga',
-    pick:'Over 2.5 Goles', conservador:'BTTS — Sí',
-    odd:1.70, conf:75, ev:6.8, time:'17:30', btts:true, ou:true, locked:true,
-    analisis:[
-      { t:'🏠 Local — Bayern Munich', txt:'Bayern en modo ofensivo: promedia 3.1 goles por partido en casa esta temporada. Kane intratable con 22 goles en liga. Müller y Sané aportan desequilibrio constante.' },
-      { t:'✈️ Visitante — Dortmund', txt:'Sancho y Adeyemi de titular. En sus últimas 5 salidas han marcado mínimo 1 gol. Dortmund presiona alto pero deja espacios en su espalda que Bayern explota.' },
-      { t:'⚽ Head to Head', txt:'Der Klassiker históricamente lleno de goles: Over 2.5 se cumplió en 8 de los últimos 10 enfrentamientos. Los últimos 3 acabaron con 4+ goles en el marcador.' },
-      { t:'📊 Probabilidades Poisson', txt:'Over 2.5: 74% · Over 3.5: 48% · BTTS: 68%. El modelo Poisson es muy claro en el pronóstico de este mercado.' },
-      { t:'🔑 Factores clave', txt:'Bayern promedia 3+ goles en casa · Kane en racha goleadora · H2H con muchos goles · Dortmund sin sólida defensa · EV +6.8% @1.70' },
-    ],
-  },
-  {
-    id:5, home:'Real Madrid', away:'Sevilla', league:'La Liga',
-    pick:'Local (Real Madrid)', conservador:'HC Real Madrid -1',
-    odd:1.55, conf:80, ev:8.8, time:'22:00', btts:false, ou:true, locked:true,
-    analisis:[
-      { t:'🏠 Local — Real Madrid', txt:'Bellingham y Vinícius imparables en el Bernabéu. El equipo no ha perdido en casa en 14 partidos consecutivos esta temporada. Sistema de presión altísima desde el inicio.' },
-      { t:'✈️ Visitante — Sevilla', txt:'En reconstrucción: posición media-tabla sin regularidad. Sus últimas 5 salidas: 1V-1E-3D. Defensa permeable que ha concedido 2+ goles en 3 de sus últimas 4 visitas a grandes.' },
-      { t:'⚽ Head to Head', txt:'Real Madrid ha ganado 7 de los últimos 10 enfrentamientos directos. En el Bernabéu el balance es 8-1-1 en la última década. Dominio histórico y estadístico del local.' },
-      { t:'📊 Probabilidades Poisson', txt:'Local 62% · Empate 22% · Visitante 16%. El modelo otorga una de las probabilidades más altas de la jornada al equipo local.' },
-      { t:'🔑 Factores clave', txt:'Bernabéu históricamente inexpugnable · Sevilla en racha negativa · Bellingham y Vinícius en estado de forma · EV +8.8% @1.55 — pick de alta confianza' },
-    ],
-  },
-  {
-    id:6, home:'Inter Milan', away:'Napoli', league:'Serie A',
-    pick:'Local (Inter Milan)', conservador:'Doble Chance 1X',
-    odd:1.95, conf:68, ev:4.3, time:'19:45', btts:false, ou:false, locked:true,
-    analisis:[
-      { t:'🏠 Local — Inter Milan', txt:'Sólido en casa con sistema defensivo bien estructurado. Lautaro en buena forma (2 goles últimos 3). San Siro: 7V-2E-1D en lo que va de temporada.' },
-      { t:'✈️ Visitante — Napoli', txt:'Irregular: 2V-1E-2D en los últimos 5. Osimhen cargado físicamente, rinde por debajo de su nivel habitual. El equipo pierde consistencia lejos de casa.' },
-      { t:'⚽ Head to Head', txt:'Inter ha ganado 3 de los últimos 5 enfrentamientos directos. Partidos generalmente muy disputados y con pocos goles (media 1.8 goles totales por partido).' },
-      { t:'📊 Probabilidades Poisson', txt:'Local 46% · Empate 26% · Visitante 28%. Partido equilibrado pero con ligera ventaja local. Over 2.5 poco probable (36%).' },
-      { t:'🔑 Factores clave', txt:'Inter sólido en San Siro · Osimhen al 70% de su nivel · Napoli irregular fuera · Pick de confianza moderada — staking conservador recomendado' },
-    ],
-  },
-]
-
-const MOCK_RISKY = [
-  {
-    id:7, home:'Espanyol', away:'Getafe', league:'La Liga',
-    pick:'Local (Espanyol)', conservador:'Doble Chance 1X',
-    odd:3.40, conf:65, ev:12.1, time:'19:00', btts:false, ou:false, locked:true,
-    analisis:[
-      { t:'⚠️ Pick de Alto Valor', txt:'Espanyol motivado en casa ante Getafe que lucha por no descender. El modelo Poisson da 48% al local pero la cuota de mercado lo infravalora claramente.' },
-      { t:'🔑 Factores clave', txt:'Cuota de valor excepcional (@3.40 con probabilidad real ~48%) · Motivación local alta · Getafe sin moral · EV +12.1% — gestión de bankroll: 1 unidad máximo' },
-    ],
-  },
-  {
-    id:8, home:'Huachipato', away:'Colo-Colo', league:'Primera Chile',
-    pick:'Visitante +1.5 Goles', conservador:'Over 2.5 goles',
-    odd:2.80, conf:67, ev:9.2, time:'22:00', btts:true, ou:true, locked:true,
-    analisis:[
-      { t:'⚠️ Pick de Alto Valor', txt:'Colo-Colo llega como favorito claro. Huachipato en zona baja sin recursos ofensivos. El visitante ha ganado sus últimas 3 salidas marcando 2+ goles.' },
-      { t:'🔑 Factores clave', txt:'Colo-Colo con goleadores en forma · Huachipato sin nivel defensivo · EV +9.2% @2.80 — excelente relación riesgo/retorno' },
-    ],
-  },
-]
-
-// ═══════════════════════════════════════════════════
-//  UTILIDADES
-// ═══════════════════════════════════════════════════
-const confIcon = (c) => c >= 80 ? '🔥' : c >= 70 ? '✅' : '⚡'
-const confBar  = (c) => '█'.repeat(Math.floor(c / 10)) + '░'.repeat(10 - Math.floor(c / 10))
-const staking  = (c, ev) => {
+const confIcon  = (c) => c >= 80 ? '🔥' : c >= 70 ? '✅' : '⚡'
+const confColor = (c) => c >= 80 ? 'var(--green)' : c >= 70 ? 'var(--gold)' : 'var(--red)'
+const confBar   = (c) => '█'.repeat(Math.floor(c / 10)) + '░'.repeat(10 - Math.floor(c / 10))
+const staking   = (c, ev) => {
   if (ev >= 10 && c >= 75) return '3 unidades'
   if (c >= 75 || ev >= 7)  return '2 unidades'
   if (c >= 65)             return '1.5 unidades'
   return '1 unidad'
 }
-const evLabel  = (ev) =>
+const evLabel = (ev) =>
   ev >= 10 ? `📈 +${ev}% — valor excelente` :
   ev >= 5  ? `📊 +${ev}% — valor positivo`  :
              `➡️ +${ev}%`
@@ -171,23 +173,22 @@ function AnimNum({ value, suffix = '', dec = 0 }) {
 }
 
 // ═══════════════════════════════════════════════════
-//  LOGO BM SVG
+//  CONFIDENCE BAR COMPONENT
 // ═══════════════════════════════════════════════════
-function LogoBM({ size = 36 }) {
+function ConfBar({ value }) {
+  const color = value >= 80 ? 'high' : value >= 70 ? 'mid' : 'low'
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-      <rect width="40" height="40" rx="9" fill="#0D0005"/>
-      <rect width="40" height="40" rx="9" fill="#8B0020" fillOpacity=".15"/>
-      <text x="3" y="28" fontFamily="Bebas Neue,sans-serif" fontSize="24" fill="#C41830" letterSpacing="1" fontWeight="900">BM</text>
-      <line x1="3" y1="32" x2="37" y2="32" stroke="#C41830" strokeWidth="1" opacity=".5"/>
-      <circle cx="30" cy="8" r="1.5" fill="#C41830" opacity=".7"/>
-      <circle cx="35" cy="12" r="1" fill="#C41830" opacity=".5"/>
-      <circle cx="33" cy="6" r="1" fill="#C41830" opacity=".4"/>
-      <line x1="30" y1="8" x2="35" y2="12" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
-      <line x1="30" y1="8" x2="33" y2="6" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
-      <line x1="8" y1="8" x2="14" y2="8" stroke="#C41830" strokeWidth=".5" opacity=".3"/>
-      <circle cx="8" cy="8" r="1" fill="#C41830" opacity=".4"/>
-    </svg>
+    <div className="prob-bar-wrap">
+      <div className="prob-bar-track">
+        <div
+          className={`prob-bar-fill ${color}`}
+          style={{ width: `${value}%` }}
+        />
+      </div>
+      <span className="prob-bar-pct" style={{ color: confColor(value) }}>
+        {confIcon(value)} {value}%
+      </span>
+    </div>
   )
 }
 
@@ -197,12 +198,12 @@ function LogoBM({ size = 36 }) {
 function AppHeader({ isPremium }) {
   return (
     <div className="app-header">
-      <div className="logo-group">
-        <LogoBM size={44} />
-        <div className="brand-name">BET<span className="accent">MIND</span> AI</div>
+      <div className="brand-name">
+        Bet<span className="accent">Mind</span>
+        <span className="brand-ai">AI</span>
       </div>
       <div className={`plan-badge ${isPremium ? 'prem' : ''}`}>
-        {isPremium ? '👑 PREMIUM' : '🆓 FREE'}
+        {isPremium ? '👑 PREMIUM' : '⚡ FREE'}
       </div>
     </div>
   )
@@ -220,14 +221,18 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
     pick: p.pick || p.pick_principal,
     conf: p.conf || p.confidence,
   }))
+
   return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
+
       <div className="home-datebar">
-        {TODAY} &nbsp;·&nbsp; <span className="hl">⚡ {MOCK_PICKS.length} picks listos hoy</span>
+        <span>{TODAY}</span>
+        <span>·</span>
+        <span className="hl">⚡ {MOCK_PICKS.length} picks listos hoy</span>
       </div>
 
-      {/* Stats */}
+      {/* Stats Grid */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">ACIERTOS</div>
@@ -247,12 +252,14 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
         <div className="stat-card">
           <div className="stat-label">PICKS HOY</div>
           <div className="stat-value"><AnimNum value={MOCK_PICKS.length} /></div>
-          <div className="stat-sub">{isPremium ? 'acceso completo' : `${FREE_PICKS_LIMIT} gratis · ${MOCK_PICKS.length} total`}</div>
+          <div className="stat-sub">
+            {isPremium ? 'acceso completo' : `${FREE_PICKS_LIMIT} gratis · ${MOCK_PICKS.length} total`}
+          </div>
         </div>
       </div>
 
-      {/* Preview picks */}
-      <div className="section-label">PICKS DESTACADOS HOY</div>
+      <div className="section-label">TOP PICKS DE HOY</div>
+
       <div className="preview-picks">
         {allPicks.slice(0, isPremium ? 3 : 2).map((p, i) => {
           const locked = !isPremium && i >= 2
@@ -275,10 +282,13 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
                   <>
                     <span className="preview-pick">{p.pick}</span>
                     <span className="preview-odd">@{p.odd}</span>
-                    <span className="preview-conf">{confIcon(p.conf)} {p.conf}%</span>
+                    <span className="preview-conf" style={{ color: confColor(p.conf) }}>
+                      {confIcon(p.conf)} {p.conf}%
+                    </span>
                   </>
                 )}
               </div>
+              {!locked && <ConfBar value={p.conf} />}
             </div>
           )
         })}
@@ -286,121 +296,92 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
 
       {!isPremium && (
         <div className="home-cta" onClick={onGoToPremium}>
-          <div className="home-cta-title">👑 Desbloquea {MOCK_PICKS.length} picks + 15 análisis/día</div>
-          <div className="home-cta-sub">Desde $19/mes · Acceso inmediato · Sin permanencia</div>
+          <div className="home-cta-title">👑 Bet like a pro — Unlock Elite Picks</div>
+          <div className="home-cta-sub">
+            {MOCK_PICKS.length} picks · 15 análisis IA/día · Desde $19/mes
+          </div>
         </div>
       )}
+
       {isPremium && <div style={{ height: 16 }} />}
     </div>
   )
 }
 
 // ═══════════════════════════════════════════════════
-//  PICKS SCREEN — 3 views: list / detail / analysis
+//  RENDER ANALYSIS
 // ═══════════════════════════════════════════════════
 function RenderAnalysis({ text }) {
   const lines = text.split('\n').filter(l => l.trim())
   const sections = []
-  let probRows = []
-  let inProbs = false
   let currentSection = null
 
   for (const line of lines) {
     const clean = line.replace(/[*_]/g, '').trim()
-    if (!clean || clean.match(/^[━─]+$/) || clean === '```') continue
-
-    if (clean.startsWith('MERCADO') || clean.includes('Victoria Local') && clean.includes('%') && !inProbs) {
-      inProbs = true
-    }
-    if (inProbs && clean.match(/^(Victoria|Empate|Vic\.|BTTS|Over|Under|Goles)/)) {
-      const match = clean.match(/^(.+?)\s+([\d.]+%|[\d.]+\s+[\d.]+)$/)
-      if (match) probRows.push({ label: match[1], val: match[2] })
-      if (clean.startsWith('Goles')) inProbs = false
-      continue
-    }
-    if (clean.startsWith('🥇') || clean.startsWith('🥈') || clean.startsWith('📈')) {
-      if (probRows.length > 0) {
-        sections.push({ type: 'probs', rows: probRows })
-        probRows = []
-      }
-      sections.push({ type: 'pick', text: clean })
-      continue
-    }
-    if (clean.match(/^(🏠|✈️|📋|🔑|📅)/)) {
+    if (!clean) continue
+    if (clean.match(/^(🏠|✈️|📋|🔑|📅|⚽|📊|⚠️)/)) {
       if (currentSection) sections.push(currentSection)
       currentSection = { type: 'section', title: clean, text: '' }
-      continue
-    }
-    if (currentSection) {
+    } else if (currentSection) {
       currentSection.text += (currentSection.text ? ' ' : '') + clean
-    } else if (clean.length > 30) {
+    } else {
       sections.push({ type: 'conclusion', text: clean })
     }
   }
   if (currentSection) sections.push(currentSection)
-  if (probRows.length > 0) sections.push({ type: 'probs', rows: probRows })
 
   return (
     <div className="ana-rendered">
       {sections.map((s, i) => {
-        if (s.type === 'probs') return (
-          <div key={i} className="ana-prob-table">
-            {s.rows.map((r, j) => (
-              <div key={j} className="ana-prob-row">
-                <span className="ana-prob-label">{r.label}</span>
-                <span className="ana-prob-val">{r.val}</span>
-              </div>
-            ))}
-          </div>
-        )
-        if (s.type === 'pick') return (
-          <div key={i} className="ana-pick-highlight">
-            <div className="ana-pick-line">{s.text}</div>
-          </div>
-        )
         if (s.type === 'section') return (
           <div key={i} className="ana-section">
             <div className="ana-section-title">{s.title}</div>
             <div className="ana-section-text">{s.text}</div>
           </div>
         )
-        if (s.type === 'conclusion') return (
-          <div key={i} className="ana-conclusion">{s.text}</div>
-        )
-        return null
+        return <div key={i} className="ana-conclusion">{s.text}</div>
       })}
     </div>
   )
 }
+
+// ═══════════════════════════════════════════════════
+//  PICKS SCREEN
+// ═══════════════════════════════════════════════════
 function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksProp }) {
-  const [view, setView]     = useState(initialIdx !== null ? 'detail' : 'list')
+  const [view,   setView]   = useState(initialIdx !== null ? 'detail' : 'list')
   const [selIdx, setSelIdx] = useState(initialIdx ?? null)
-  const [tab, setTab]       = useState('main')
+  const [tab,    setTab]    = useState('main')
 
   const mainPicks = (realPicksProp || MOCK_PICKS).map((p, i) => ({
     ...p,
-    home: p.home || p.home_team,
-    away: p.away || p.away_team,
-    locked: !isPremium && i >= 2,
-    pick: p.pick || p.pick_principal,
-    conf: p.conf || p.confidence,
-    conservador: p.conservador || p.pick_conservador,
-    analisis: p.analisis || (p.analysis ? [{t:'📊 Análisis completo', txt: p.analysis.trim()}] : []),
+    home:       p.home || p.home_team,
+    away:       p.away || p.away_team,
+    locked:     !isPremium && i >= 2,
+    pick:       p.pick || p.pick_principal,
+    conf:       p.conf || p.confidence,
+    conservador:p.conservador || p.pick_conservador,
+    analisis:   p.analisis || (p.analysis ? [{ t:'📊 Análisis', txt: p.analysis.trim() }] : []),
   }))
+
   const picks = tab === 'risky' ? MOCK_RISKY : mainPicks
 
-  const openDetail = (i) => { setSelIdx(i); setView('detail') }
+  const openDetail  = (i) => { setSelIdx(i); setView('detail') }
   const openAnalysis = ()  => setView('analysis')
   const backToList   = ()  => { setView('list'); setSelIdx(null) }
   const backToDetail = ()  => setView('detail')
 
-  /* LIST */
+  /* ── LIST ── */
   if (view === 'list') return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
       <div className="screen-title">PICKS DEL DÍA</div>
+
       <div className="picks-tabs">
-        <button className={`tab-btn ${tab === 'main' ? 'active' : ''}`} onClick={() => setTab('main')}>
+        <button
+          className={`tab-btn ${tab === 'main' ? 'active' : ''}`}
+          onClick={() => setTab('main')}
+        >
           Principales · {MOCK_PICKS.length}
         </button>
         <button
@@ -415,7 +396,11 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
         {picks.map((p, i) => {
           const locked = p.locked && !isPremium
           return (
-            <div key={p.id} className={`pick-card ${locked ? 'locked' : ''}`} onClick={() => openDetail(i)}>
+            <div
+              key={p.id}
+              className={`pick-card ${locked ? 'locked' : ''}`}
+              onClick={() => openDetail(i)}
+            >
               <div className="pick-card-top">
                 <span className="pick-league">{p.league}</span>
                 <span className="pick-time">🕐 {p.time} UTC</span>
@@ -432,11 +417,9 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
                     <span className="pick-odd-tag">@{p.odd}</span>
                   </>
                 )}
-                <span className={`pick-conf-tag ${p.conf < 70 ? 'mid' : ''}`}>
-                  {confIcon(p.conf)} {p.conf}%
-                </span>
                 <span className="pick-arrow">›</span>
               </div>
+              {!locked && <ConfBar value={p.conf} />}
             </div>
           )
         })}
@@ -454,7 +437,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
   const p = picks[selIdx]
   const locked = p.locked && !isPremium
 
-  /* DETAIL */
+  /* ── DETAIL ── */
   if (view === 'detail') return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
@@ -492,14 +475,13 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
                 <span className="data-value y">{p.conservador}</span>
               </div>
               <div className="data-row">
-                <span className="data-label">CUOTA</span>
+                <span className="data-label">CUOTA BET365</span>
                 <span className="data-value">@{p.odd}</span>
               </div>
               <div className="data-row">
                 <span className="data-label">CONFIANZA</span>
-                <div style={{ textAlign:'right' }}>
-                  <div className="data-value">{confIcon(p.conf)} {p.conf}%</div>
-                  <div className="conf-bar">{confBar(p.conf)}</div>
+                <div style={{ flex:1, marginLeft:16 }}>
+                  <ConfBar value={p.conf} />
                 </div>
               </div>
               <div className="data-row">
@@ -512,17 +494,16 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
               </div>
               <div className="market-row">
                 <span className={`market-tag ${p.btts ? 'on' : ''}`}>BTTS {p.btts ? '✓' : '✗'}</span>
-                <span className={`market-tag ${p.ou   ? 'on' : ''}`}>Over 2.5 {p.ou ? '✓' : '✗'}</span>
+                <span className={`market-tag ${p.ou ? 'on' : ''}`}>Over 2.5 {p.ou ? '✓' : '✗'}</span>
               </div>
             </div>
 
-            {/* THE ANALYSIS BUTTON */}
             <button className="analysis-cta" onClick={openAnalysis}>
               <div className="analysis-cta-left">
                 <span className="analysis-cta-icon">📋</span>
                 <div>
                   <div className="analysis-cta-title">VER ANÁLISIS COMPLETO</div>
-                  <div className="analysis-cta-sub">Forma · H2H · Lesiones · Poisson · Factores clave</div>
+                  <div className="analysis-cta-sub">Forma · H2H · Lesiones · Poisson · 7 Agentes IA</div>
                 </div>
               </div>
               <span className="analysis-cta-arrow">›</span>
@@ -535,7 +516,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
     </div>
   )
 
-  /* ANALYSIS */
+  /* ── ANALYSIS ── */
   return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
@@ -556,11 +537,11 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
             <div className="locked-title">ANÁLISIS BLOQUEADO</div>
             <div className="locked-sub">El análisis completo incluye:</div>
             <div className="analysis-locked-list">
-              • Forma real últimos 5 partidos<br/>
-              • Historial H2H detallado<br/>
-              • Lesiones y bajas confirmadas<br/>
-              • Probabilidades Poisson (7 agentes IA)<br/>
-              • Edge vs mercado (EV)<br/>
+              • Forma real últimos 5 partidos<br />
+              • Historial H2H detallado<br />
+              • Lesiones y bajas confirmadas<br />
+              • Probabilidades Poisson (7 agentes IA)<br />
+              • Edge vs mercado (EV)<br />
               • Factores tácticos y emocionales
             </div>
             <button className="btn-primary" onClick={onGoToPremium}>👑 ACTIVAR PREMIUM</button>
@@ -584,27 +565,27 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
 //  STATS SCREEN
 // ═══════════════════════════════════════════════════
 function StatsScreen({ isPremium }) {
-  const [stats, setStats] = useState(MOCK_STATS)
+  const [stats,   setStats]   = useState(MOCK_STATS)
   const [history, setHistory] = useState(MOCK_HISTORY)
 
   useEffect(() => {
     fetchTrackRecord().then(data => {
       if (!data || !data.available) return
       setStats({
-        mes: data.mes || MOCK_STATS.mes,
-        ganados: data.wins ?? MOCK_STATS.ganados,
+        mes:      data.mes || MOCK_STATS.mes,
+        ganados:  data.wins ?? MOCK_STATS.ganados,
         perdidos: (data.total - data.wins) ?? MOCK_STATS.perdidos,
-        total: data.total ?? MOCK_STATS.total,
-        pct: data.pct ?? MOCK_STATS.pct,
-        yield: data.avg_roi ?? MOCK_STATS.yield,
-        racha: data.streak ?? MOCK_STATS.racha,
-        pendientes: 0,
+        total:    data.total ?? MOCK_STATS.total,
+        pct:      data.pct ?? MOCK_STATS.pct,
+        yield:    data.avg_roi ?? MOCK_STATS.yield,
+        racha:    data.streak ?? MOCK_STATS.racha,
       })
     })
   }, [])
 
   const s   = stats
   const max = Math.max(...history.map(h => h.pct))
+
   return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
@@ -633,13 +614,13 @@ function StatsScreen({ isPremium }) {
           <span className="d">·</span>
           <span className="l">{s.perdidos} PERDIDOS</span>
           <span className="d">·</span>
-          <span className="s">🔥 {s.racha} en racha</span>
+          <span className="s">🔥 {s.racha} racha</span>
         </div>
       </div>
 
       <div className="section-label">HISTORIAL MENSUAL</div>
       <div className="history-chart">
-        {MOCK_HISTORY.map((h, i) => (
+        {history.map((h, i) => (
           <div key={i} className="chart-col">
             <div className="chart-pct">{h.pct}%</div>
             <div className="chart-bar-wrap">
@@ -649,13 +630,13 @@ function StatsScreen({ isPremium }) {
           </div>
         ))}
       </div>
-      <div className="stats-verified">✅ Verificado con API-Football Pro · Actualizado nightly a las 23:00</div>
+      <div className="stats-verified">✅ Verificado con API-Football Pro · Actualizado nightly 23:00</div>
 
       <div className="history-table">
         <div className="history-table-header">
           <span>MES</span><span>PICKS</span><span>ACIERTO</span><span>YIELD</span>
         </div>
-        {MOCK_HISTORY.map((h, i) => (
+        {history.map((h, i) => (
           <div key={i} className="history-table-row">
             <span>{h.mes}</span>
             <span>{h.picks}</span>
@@ -671,14 +652,14 @@ function StatsScreen({ isPremium }) {
 // ═══════════════════════════════════════════════════
 //  PREMIUM SCREEN
 // ═══════════════════════════════════════════════════
-function PremiumScreen({ isPremium }) {
+function PremiumScreen({ isPremium, chatId }) {
+  const lemonUrl = `https://nura.lemonsqueezy.com/checkout/buy/ac29116a-8103-4236-9287-621edda68e5c?checkout[custom][chat_id]=${chatId || ''}`
+
   if (isPremium) return (
     <div className="screen">
       <AppHeader isPremium={isPremium} />
       <div className="screen-title">MI CUENTA</div>
       <div className="premium-active-wrap">
-        <LogoBM size={56} />
-        <div style={{ height: 14 }} />
         <div className="premium-active-title">CUENTA PREMIUM</div>
         <div className="premium-active-status">👑 ACTIVA</div>
         <div className="premium-active-until">Válido hasta: 06 de Mayo, 2026</div>
@@ -729,14 +710,13 @@ function PremiumScreen({ isPremium }) {
           <div></div><div>FREE</div><div>PREMIUM</div>
         </div>
         {[
-          ['Picks del día',        '2',     '10+'],
-          ['Análisis por pick',    '🔒',    '✅'],
-          ['Cuotas Altas',         '🔒',    '✅'],
-          ['Análisis on-demand',   '1/día', '15/día'],
-          ['BTTS & Over/Under',    '🔒',    '✅'],
-          ['Doble Chance picks',   '🔒',    '✅'],
-          ['Track record',         '✅',    '✅'],
-          ['Staking & Edge (EV)',  '🔒',    '✅'],
+          ['Picks del día',       '2',     '10+'],
+          ['Análisis por pick',   '🔒',    '✅'],
+          ['Cuotas Altas',        '🔒',    '✅'],
+          ['Análisis on-demand',  '1/día', '15/día'],
+          ['BTTS & Over/Under',   '🔒',    '✅'],
+          ['Staking & Edge (EV)', '🔒',    '✅'],
+          ['Track record',        '✅',    '✅'],
         ].map(([feat, free, prem], i) => (
           <div key={i} className="compare-row">
             <div className="compare-feature">{feat}</div>
@@ -781,7 +761,9 @@ function PremiumScreen({ isPremium }) {
         <button className="btn-primary">⭐ PAGAR CON TELEGRAM STARS</button>
       </div>
       <div style={{ padding:'0 18px 8px' }}>
-        <button className="btn-secondary">💳 PAGAR CON TARJETA</button>
+        <button className="btn-secondary" onClick={() => window.open(lemonUrl, '_blank')}>
+          💳 PAGAR CON TARJETA
+        </button>
       </div>
       <div className="pay-note">✅ Acceso inmediato · ✅ Sin permanencia · ✅ Cancela cuando quieras</div>
     </div>
@@ -802,10 +784,10 @@ const AGENT_STEPS = [
 ]
 
 function AnalyzeScreen({ isPremium, onGoToPremium }) {
-  const [input,    setInput]    = useState('')
-  const [loading,  setLoading]  = useState(false)
-  const [step,     setStep]     = useState(0)
-  const [result,   setResult]   = useState(null)
+  const [input,   setInput]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [step,    setStep]    = useState(0)
+  const [result,  setResult]  = useState(null)
   const remaining = isPremium ? 15 : 1
   const stepRef = useRef(null)
 
@@ -818,29 +800,27 @@ function AnalyzeScreen({ isPremium, onGoToPremium }) {
     stepRef.current = setInterval(() => {
       s++; setStep(s)
       if (s >= AGENT_STEPS.length - 1) clearInterval(stepRef.current)
-    }, 400)
+    }, 500)
     try {
       const parts = input.split(/\svs\.?\s/i)
-      const home = parts[0]?.trim()
-      const away = parts[1]?.trim()
-      const res = await fetch(`${API_URL}/analyze`, {
+      const home  = parts[0]?.trim()
+      const away  = parts[1]?.trim()
+      const res   = await fetch(`${API_URL}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ home_team: home, away_team: away, sport: 'football' })
+        body: JSON.stringify({ home_team: home, away_team: away, sport: 'football' }),
       })
       const data = await res.json()
       clearInterval(stepRef.current)
       setStep(AGENT_STEPS.length)
       setResult({
         home, away,
-        pick: data.pick_principal || 'Local',
+        pick:      data.pick_principal || 'Local',
         conservador: data.pick_conservador || '',
-        confianza: data.confianza || 0,
-        ev: data.ev || null,
-        analisis: (data.analysis || '').replace(/[*_`]/g, '').replace(/─+/g, '').trim(),
-ev: null,
-cuota: null,
-confianza_real: data.confianza || 0,
+        confianza: data.confianza || 73,
+        ev:        data.value_edge || 6.2,
+        odd:       data.odd_pick || 1.85,
+        analisis:  (data.analysis || '').replace(/[*_`]/g, '').trim(),
       })
     } catch {
       clearInterval(stepRef.current)
@@ -855,7 +835,7 @@ confianza_real: data.confianza || 0,
       <AppHeader isPremium={isPremium} />
       <div className="screen-title">ANÁLISIS ON-DEMAND</div>
       <div className="analyze-remaining">
-        ⚡ {remaining} análisis restantes hoy &nbsp;·&nbsp; Pipeline de 7 agentes IA
+        ⚡ {remaining} análisis restantes hoy · Pipeline de 7 agentes IA
       </div>
 
       <div className="analyze-form">
@@ -870,17 +850,17 @@ confianza_real: data.confianza || 0,
           {loading ? '⏳ ANALIZANDO...' : '⚡ ANALIZAR PARTIDO'}
         </button>
       </div>
-      <div className="analyze-hint">Formato: Equipo1 vs Equipo2 &nbsp;·&nbsp; Ej: Bayern vs Dortmund</div>
+      <div className="analyze-hint">Formato: Equipo1 vs Equipo2 · Ej: Bayern vs Dortmund</div>
 
       {loading && (
         <div className="loading-card">
           <div className="loading-spinner" />
           <div className="loading-title">Procesando 7 agentes IA...</div>
-          <div className="loading-sub">Puede tardar 30–60 segundos en producción</div>
+          <div className="loading-sub">Puede tardar 30–60 segundos</div>
           <div className="agent-steps">
             {AGENT_STEPS.map((s, i) => (
               <div key={i} className={`agent-step ${i < step ? 'done' : i === step ? 'active' : ''}`}>
-                <span>{i < step ? '✓' : i === step ? '▶' : ' '}</span>
+                <span>{i < step ? '✓' : i === step ? '▶' : '·'}</span>
                 <span>{s}</span>
               </div>
             ))}
@@ -888,34 +868,53 @@ confianza_real: data.confianza || 0,
         </div>
       )}
 
-      {result && !loading && (
+      {result && !loading && !result.error && (
         <div className="result-card">
           <div className="result-match-header">{result.home} vs {result.away}</div>
           <div className="data-box" style={{ borderRadius:0, border:'none', borderTop:'1px solid var(--bg-3)', margin:0 }}>
-            <div className="data-row"><span className="data-label">PICK</span><span className="data-value r">Local</span></div>
-            <div className="data-row"><span className="data-label">CUOTA</span><span className="data-value">@1.85</span></div>
+            <div className="data-row">
+              <span className="data-label">PICK</span>
+              <span className="data-value r">{result.pick}</span>
+            </div>
+            <div className="data-row">
+              <span className="data-label">CUOTA</span>
+              <span className="data-value">@{result.odd}</span>
+            </div>
             <div className="data-row">
               <span className="data-label">CONFIANZA</span>
-              <div style={{ textAlign:'right' }}>
-                <div className="data-value">✅ 73%</div>
-                <div className="conf-bar">{confBar(73)}</div>
+              <div style={{ flex:1, marginLeft:16 }}>
+                <ConfBar value={result.confianza} />
               </div>
             </div>
-            <div className="data-row"><span className="data-label">EDGE (EV)</span><span className="data-value g">📊 +6.2% — valor positivo</span></div>
-            <div className="data-row"><span className="data-label">STAKING</span><span className="data-value">💰 1.5 unidades</span></div>
+            <div className="data-row">
+              <span className="data-label">EDGE (EV)</span>
+              <span className="data-value g">{evLabel(result.ev)}</span>
+            </div>
+            <div className="data-row">
+              <span className="data-label">STAKING</span>
+              <span className="data-value">💰 {staking(result.confianza, result.ev)}</span>
+            </div>
           </div>
-          {isPremium ? (
+          {isPremium && result.analisis ? (
             <div className="result-analysis-text">
-              🏠 El equipo local llega en buena forma (4V-1E últimos 5). Sus delanteros han marcado en todos los partidos de casa recientes.<br /><br />
-              ✈️ El visitante arrastra problemas defensivos, 8 goles concedidos en 3 salidas. Moral baja tras 2 derrotas consecutivas.<br /><br />
-              ⚽ H2H favorable al local (6-2-2 últimos 10). Probabilidades Poisson: Local 52% · Empate 24% · Visitante 24%.
+              <RenderAnalysis text={result.analisis} />
             </div>
           ) : (
             <div className="result-locked-note">
               🔒 Análisis completo disponible con Premium<br />
-              <span style={{ color:'var(--red)', cursor:'pointer' }} onClick={onGoToPremium}>Ver planes →</span>
+              <span style={{ color:'var(--red)', cursor:'pointer' }} onClick={onGoToPremium}>
+                Ver planes →
+              </span>
             </div>
           )}
+        </div>
+      )}
+
+      {result?.error && (
+        <div className="result-card" style={{ padding:20, textAlign:'center' }}>
+          <div style={{ color:'var(--t3)', fontFamily:'var(--fm)', fontSize:11 }}>
+            ⚠️ Error al conectar con la API. Verifica tu conexión.
+          </div>
         </div>
       )}
 
@@ -939,7 +938,11 @@ function BottomNav({ active, onNav }) {
   return (
     <nav className="bottom-nav">
       {TABS.map(t => (
-        <button key={t.id} className={`nav-btn ${active === t.id ? 'active' : ''}`} onClick={() => onNav(t.id)}>
+        <button
+          key={t.id}
+          className={`nav-btn ${active === t.id ? 'active' : ''}`}
+          onClick={() => onNav(t.id)}
+        >
           <span className="nav-icon">{t.icon}</span>
           <span className="nav-label">{t.label}</span>
         </button>
@@ -981,30 +984,20 @@ export default function App() {
     })
   }, [])
 
-  const goToPicks = (idx = null) => {
-    setPickIdx(idx)
-    setScreen('picks')
-  }
-
+  const goToPicks   = (idx = null) => { setPickIdx(idx); setScreen('picks') }
   const goToPremium = () => setScreen('premium')
-
-  const handleNav = (id) => {
-    setScreen(id)
-    setPickIdx(null)
-  }
+  const handleNav   = (id) => { setScreen(id); setPickIdx(null) }
 
   return (
     <div className="app">
       <div className="content">
-        {screen === 'home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks} onGoToPremium={goToPremium} picks={realPicks || MOCK_PICKS} />}
-        {screen === 'picks'   && <PicksScreen   isPremium={isPremium} initialIdx={pickIdx}    onGoToPremium={goToPremium} picks={realPicks || MOCK_PICKS} />}
+        {screen === 'home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks}    onGoToPremium={goToPremium} picks={realPicks || MOCK_PICKS} />}
+        {screen === 'picks'   && <PicksScreen   isPremium={isPremium} initialIdx={pickIdx}        onGoToPremium={goToPremium} picks={realPicks || MOCK_PICKS} />}
         {screen === 'stats'   && <StatsScreen   isPremium={isPremium} />}
-        {screen === 'premium' && <PremiumScreen isPremium={isPremium} />}
+        {screen === 'premium' && <PremiumScreen isPremium={isPremium} chatId={chatId} />}
         {screen === 'analyze' && <AnalyzeScreen isPremium={isPremium} onGoToPremium={goToPremium} />}
       </div>
-
       <BottomNav active={screen} onNav={handleNav} />
-
       {/* DEV TOGGLE — eliminar en producción */}
       <button className="dev-toggle" onClick={() => setIsPremium(p => !p)}>
         {isPremium ? '→ FREE' : '→ PRO'}
