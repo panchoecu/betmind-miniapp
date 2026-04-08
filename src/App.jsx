@@ -704,7 +704,9 @@ function StatsScreen({ isPremium }) {
 //  PREMIUM SCREEN
 // ═══════════════════════════════════════════════════
 function PremiumScreen({ isPremium, chatId }) {
-  const lemonUrl = `https://nura.lemonsqueezy.com/checkout/buy/ac29116a-8103-4236-9287-621edda68e5c?checkout[custom][chat_id]=${chatId || ''}`
+  const params = new URLSearchParams()
+  params.set('checkout[custom][chat_id]', String(chatId || ''))
+  const lemonUrl = `https://nura.lemonsqueezy.com/checkout/buy/ac29116a-8103-4236-9287-621edda68e5c?${params.toString()}`
 
   if (isPremium) return (
     <div className="screen">
