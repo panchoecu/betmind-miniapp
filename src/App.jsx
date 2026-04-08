@@ -176,7 +176,7 @@ function AnimNum({ value, suffix = '', dec = 0 }) {
 function LogoBM({ size = 36 }) {
   return (
     <img
-      src="/Betmind_logo_oficial.jpeg"
+      src="/Betmind logo oficial.jpeg"
       alt="BetMind AI"
       style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover' }}
     />
