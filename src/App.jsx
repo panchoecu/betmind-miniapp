@@ -175,15 +175,11 @@ function AnimNum({ value, suffix = '', dec = 0 }) {
 // ═══════════════════════════════════════════════════
 function LogoBM({ size = 36 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
-      <rect width="36" height="36" rx="8" fill="#1a0508"/>
-      <text x="4" y="26" fontFamily="Bebas Neue,sans-serif" fontSize="21" fill="#C41830" letterSpacing="1">BM</text>
-      <line x1="4" y1="29" x2="32" y2="29" stroke="#C41830" strokeWidth="1.2" opacity=".45"/>
-      <circle cx="8"  cy="10" r="1"  fill="#C41830" opacity=".6"/>
-      <circle cx="30" cy="10" r="1"  fill="#C41830" opacity=".6"/>
-      <line x1="8" y1="10" x2="14" y2="10" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
-      <line x1="24" y1="10" x2="30" y2="10" stroke="#C41830" strokeWidth=".5" opacity=".4"/>
-    </svg>
+    <img
+      src="/Betmind_logo_oficial.jpeg"
+      alt="BetMind AI"
+      style={{ width: size, height: size, borderRadius: 8, objectFit: 'cover' }}
+    />
   )
 }
 
