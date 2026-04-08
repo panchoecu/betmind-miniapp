@@ -41,9 +41,9 @@ input  { font-family: inherit; }
 
 /* ── HEADER ── */
 .app-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px 12px; border-bottom:1px solid var(--bg-3); background:var(--bg-1); position:sticky; top:0; z-index:10; }
-.brand-name { font-family:var(--ft); font-size:28px; letter-spacing:4px; color:var(--t1); line-height:1; }
+
 .logo-group { display:flex; align-items:center; gap:10px;  overflow:hidden;}
-.brand-name { font-family:var(--ft); font-size:26px; letter-spacing:3px; color:var(--t1); line-height:1; }
+.brand-name { font-family:var(--ft); font-size:32px; letter-spacing:5px; color:var(--t1); line-height:1; }
 .brand-name .accent { color:var(--red); }
 .plan-badge { font-family:var(--fm); font-size:9px; letter-spacing:1px; padding:3px 10px; border-radius:20px; border:1px solid var(--red-border); color:var(--red); background:var(--red-dim); }
 .plan-badge.prem { border-color:rgba(245,166,35,0.5); color:var(--gold); background:rgba(245,166,35,0.08); }
