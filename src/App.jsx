@@ -955,7 +955,7 @@ export default function App() {
   const [chatId,    setChatId]    = useState(null)
 
   useEffect(() => {
-    WebApp.ready()
+    try { WebApp.ready() } catch(e) {}
     const user = WebApp.initDataUnsafe?.user
     if (user?.id) {
       setChatId(user.id)
