@@ -869,6 +869,17 @@ export default function App() {
     })
     fetchTrackRecord().then(data => {
       if (data && data.available) setRealStats({
+        mes: data.mes || 'Abril 2026',
+        ganados: data.wins ?? 0,
+        perdidos: (data.total - data.wins) ?? 0,
+        total: data.total ?? 0,
+        pct: data.pct ?? 0,
+        yield: data.avg_roi ?? 0,
+        racha: data.streak ?? 0,
+      })
+    })
+    fetchTrackRecord().then(data => {
+      if (data && data.available) setRealStats({
         mes:      data.mes || 'Abril 2026',
         ganados:  data.wins ?? 0,
         perdidos: (data.total - data.wins) ?? 0,
