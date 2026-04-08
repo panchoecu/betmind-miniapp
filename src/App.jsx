@@ -190,7 +190,7 @@ function AppHeader({ isPremium }) {
   return (
     <div className="app-header">
       <div className="logo-group">
-        <LogoBM />
+        <LogoBM size={44} />
         <div className="brand-name">BET<span className="accent">MIND</span> AI</div>
       </div>
       <div className={`plan-badge ${isPremium ? 'prem' : ''}`}>
