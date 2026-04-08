@@ -166,7 +166,7 @@ function ConfBar({ value }) {
 }
 
 function AIEdgeBadge({ ev, conf }) {
-  const edge = ((ev * 0.4 + conf * 0.06)).toFixed(1)
+  const edge = ((parseFloat(ev)||0) * 0.4 + (parseFloat(conf)||0) * 0.06).toFixed(1)
   return (
     <div className="ai-edge-badge">
       <div className="ai-edge-item">
@@ -181,7 +181,7 @@ function AIEdgeBadge({ ev, conf }) {
       <div className="ai-edge-sep" />
       <div className="ai-edge-item">
         <div className="ai-edge-label">EV EDGE</div>
-        <div className="ai-edge-value">+{ev}%</div>
+        <div className="ai-edge-value">{parseFloat(ev) > 0 ? `+${ev}%` : '—'}</div>
       </div>
     </div>
   )
