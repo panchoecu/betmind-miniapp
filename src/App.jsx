@@ -7,17 +7,11 @@ const API_URL = 'https://webhook.tuagentevirtual.info'
 const TODAY = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric' })
 
 const MOCK_STATS = {
-  mes: 'Abril 2026', ganados: 47, perdidos: 18, total: 65,
-  pct: 72.3, yield: 18.4, racha: 5,
+  mes: 'Abril 2026', ganados: 0, perdidos: 0, total: 0,
+  pct: 0, yield: 0, racha: 0,
 }
 
-const MOCK_HISTORY = [
-  { mes:'Abr 2026', picks:65,  pct:72.3, yield:18.4 },
-  { mes:'Mar 2026', picks:58,  pct:68.1, yield:14.2 },
-  { mes:'Feb 2026', picks:62,  pct:71.0, yield:16.8 },
-  { mes:'Ene 2026', picks:55,  pct:65.4, yield:11.3 },
-  { mes:'Dic 2025', picks:61,  pct:74.2, yield:21.5 },
-]
+const MOCK_HISTORY = []
 
 const MOCK_PICKS = [
   {
@@ -200,8 +194,8 @@ function AppHeader({ isPremium }) {
   )
 }
 
-function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks }) {
-  const s = MOCK_STATS
+function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks, stats }) {
+  const s = stats || MOCK_STATS
   const allPicks = (picks || MOCK_PICKS).map(p => ({
     ...p,
     home: p.home || p.home_team,
@@ -848,6 +842,8 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false)
   const [pickIdx,   setPickIdx]   = useState(null)
   const [realPicks, setRealPicks] = useState(null)
+  const [realStats, setRealStats] = useState(null)
+  const [realStats, setRealStats] = useState(null)
   const [chatId,    setChatId]    = useState(null)
 
   useEffect(() => {
@@ -871,6 +867,17 @@ export default function App() {
     fetchDailyTips().then(picks => {
       if (picks && picks.length > 0) setRealPicks(picks)
     })
+    fetchTrackRecord().then(data => {
+      if (data && data.available) setRealStats({
+        mes:      data.mes || 'Abril 2026',
+        ganados:  data.wins ?? 0,
+        perdidos: (data.total - data.wins) ?? 0,
+        total:    data.total ?? 0,
+        pct:      data.pct ?? 0,
+        yield:    data.avg_roi ?? 0,
+        racha:    data.streak ?? 0,
+      })
+    })
   }, [])
 
   const goToPicks   = (idx = null) => { setPickIdx(idx); setScreen('picks') }
@@ -880,7 +887,7 @@ export default function App() {
   return (
     <div className="app">
       <div className="content">
-        {screen==='home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks} onGoToPremium={goToPremium} picks={realPicks||MOCK_PICKS} />}
+        {screen==='home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks} onGoToPremium={goToPremium} picks={realPicks||MOCK_PICKS} stats={realStats} />}
         {screen==='picks'   && <PicksScreen   isPremium={isPremium} initialIdx={pickIdx}    onGoToPremium={goToPremium} picks={realPicks||MOCK_PICKS} />}
         {screen==='stats'   && <StatsScreen   isPremium={isPremium} />}
         {screen==='premium' && <PremiumScreen isPremium={isPremium} chatId={chatId} />}
