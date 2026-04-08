@@ -843,7 +843,6 @@ export default function App() {
   const [pickIdx,   setPickIdx]   = useState(null)
   const [realPicks, setRealPicks] = useState(null)
   const [realStats, setRealStats] = useState(null)
-  const [realStats, setRealStats] = useState(null)
   const [chatId,    setChatId]    = useState(null)
 
   useEffect(() => {
