@@ -110,16 +110,13 @@ async function fetchDailyTips() {
     const res = await fetch(`${API_URL}/picks`)
     if (!res.ok) return null
     const data = await res.json()
-    return {
-      top_picks: data.top_picks || [],
-      picks_arriesgados: data.picks_arriesgados || [],
-    }
+    return data.top_picks || []
   } catch { return null }
 }
 
-const confClass = (c) => c >= 67 ? 'high' : c >= 60 ? 'mid' : 'low'
-const confColor = (c) => c >= 67 ? 'var(--green)' : c >= 60 ? 'var(--gold)' : 'var(--orange)'
-const confLabel = (c) => c >= 67 ? 'ALTA' : c >= 60 ? 'MEDIA' : 'BAJA'
+const confClass = (c) => c >= 78 ? 'high' : c >= 68 ? 'mid' : 'low'
+const confColor = (c) => c >= 78 ? 'var(--green)' : c >= 68 ? 'var(--gold)' : 'var(--orange)'
+const confLabel = (c) => c >= 78 ? 'ALTA' : c >= 68 ? 'MEDIA' : 'BAJA'
 const staking = (c, ev) => {
   if (ev >= 10 && c >= 75) return '3 unidades'
   if (c >= 75 || ev >= 7)  return '2 unidades'
@@ -199,7 +196,7 @@ function AppHeader({ isPremium }) {
 
 function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks, stats }) {
   const s = stats || MOCK_STATS
-  const allPicks = (picks || []).map(p => ({
+  const allPicks = (picks || MOCK_PICKS).map(p => ({
     ...p,
     home: p.home || p.home_team,
     away: p.away || p.away_team,
@@ -238,17 +235,16 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks, stats }) {
         </div>
         <div className="stat-card">
           <div className="stat-label">PICKS HOY</div>
-          <div className="stat-value"><AnimNum value={allPicks.length} /></div>
+          <div className="stat-value"><AnimNum value={MOCK_PICKS.length} /></div>
           <div className="stat-sub">{isPremium ? 'acceso completo' : `${FREE_PICKS_LIMIT} gratis`}</div>
         </div>
       </div>
 
-      {allPicks.length === 0 && <div style={{textAlign:'center',padding:'32px 18px',background:'var(--bg-card)',borderRadius:'var(--r-md)',margin:'0 0 16px'}}><div style={{fontSize:36}}>🔄</div><div style={{fontWeight:700,marginTop:8,fontSize:15}}>Picks en preparación</div><div style={{color:'var(--t3)',fontSize:12,marginTop:6}}>Nuestros 7 agentes IA están analizando los partidos de hoy. Vuelve a las 23:30 EC.</div></div>}
       <div className="section-label">🔥 TOP PICK DEL DÍA</div>
       {topPick && (
         <div className="top-pick-card" onClick={() => onGoToPicks(0)}>
-          <div className="top-pick-badge">🔥 TOP PICK · {topPick.tier === 'S' ? '⭐⭐⭐ TIER S' : topPick.tier === 'A' ? '⭐⭐ TIER A' : '⭐ TIER B'}</div>
-          <div className="top-pick-league">{topPick.league} · {(() => { const m={39:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',40:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',61:'🇫🇷',78:'🇩🇪',79:'🇩🇪',88:'🇳🇱',89:'🇳🇱',94:'🇵🇹',135:'🇮🇹',140:'🇪🇸',141:'🇪🇸',144:'🇧🇪',162:'🇨🇷',179:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',188:'🇦🇺',203:'🇹🇷',207:'🇨🇭',210:'🇭🇷',218:'🇦🇹',239:'🇨🇴',242:'🇪🇨',250:'🇵🇾',253:'🇺🇸',262:'🇲🇽',265:'🇨🇱',268:'🇺🇾',281:'🇵🇪',344:'🇧🇴',2:'🇪🇺',3:'🇪🇺',11:'🌎',13:'🌎',848:'🇪🇺'}; return m[topPick.league_id] || '🌍' })()}</div>
+          <div className="top-pick-badge">🔥 TOP PICK · ALTA CONFIANZA</div>
+          <div className="top-pick-league">{topPick.league} · {topPick.time} UTC</div>
           <div className="top-pick-teams">
             {topPick.home} <span style={{color:'var(--t3)',fontWeight:300}}>vs</span> {topPick.away}
           </div>
@@ -290,7 +286,7 @@ function HomeScreen({ isPremium, onGoToPicks, onGoToPremium, picks, stats }) {
       {!isPremium && (
         <div className="home-cta" onClick={onGoToPremium}>
           <div className="home-cta-title">👑 Bet like a pro — Desbloquea todos los picks</div>
-          <div className="home-cta-sub">5+ picks premium · análisis IA completo · Desde $19/mes</div>
+          <div className="home-cta-sub">{MOCK_PICKS.length} picks · 15 análisis IA/día · Desde $19/mes</div>
         </div>
       )}
       {isPremium && <div style={{ height:16 }} />}
@@ -330,7 +326,7 @@ function RenderAnalysis({ text }) {
   )
 }
 
-function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksProp, riskyPicks }) {
+function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksProp }) {
   const [view,   setView]   = useState(initialIdx !== null ? 'detail' : 'list')
   const [selIdx, setSelIdx] = useState(initialIdx ?? null)
   const [tab,    setTab]    = useState('main')
@@ -346,17 +342,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
     analisis:    p.analisis || (p.analysis ? [{ t:'📊 Análisis', txt: p.analysis.trim() }] : []),
   }))
 
-  const realRiskyMapped = (riskyPicks || []).map((p, i) => ({
-    ...p,
-    home: p.home || p.home_team,
-    away: p.away || p.away_team,
-    locked: !isPremium,
-    pick: p.pick || p.pick_principal,
-    conf: p.conf || p.confidence,
-    conservador: p.conservador || p.pick_conservador,
-    analisis: p.analisis || (p.analysis ? [{ t:'📊 Análisis', txt: p.analysis.trim() }] : []),
-  }))
-  const picks = tab === 'risky' ? realRiskyMapped : mainPicks
+  const picks = tab === 'risky' ? MOCK_RISKY : mainPicks
   const openDetail   = (i) => { setSelIdx(i); setView('detail') }
   const openAnalysis = ()  => setView('analysis')
   const backToList   = ()  => { setView('list'); setSelIdx(null) }
@@ -368,18 +354,13 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
       <div className="screen-title">PICKS DEL DÍA</div>
       <div className="picks-tabs">
         <button className={`tab-btn ${tab==='main'?'active':''}`} onClick={() => setTab('main')}>
-          Principales · {(realPicksProp || MOCK_PICKS).length}
+          Principales · {MOCK_PICKS.length}
         </button>
-        
+        <button className={`tab-btn ${tab==='risky'?'active':''}`} onClick={() => isPremium ? setTab('risky') : onGoToPremium()}>
+          {isPremium ? `Cuotas Altas · ${MOCK_RISKY.length}` : '🔒 Cuotas Altas'}
+        </button>
       </div>
       <div className="picks-list">
-        {picks.length === 0 && tab === 'risky' && (
-          <div style={{textAlign:'center',padding:'32px 18px',background:'var(--bg-card)',borderRadius:'var(--r-md)'}}>
-            <div style={{fontSize:36}}>🎲</div>
-            <div style={{fontWeight:700,marginTop:8,fontSize:15}}>Sin cuotas altas hoy</div>
-            <div style={{color:'var(--t3)',fontSize:12,marginTop:6}}>El modelo no encontró picks de alto valor para hoy. Vuelve mañana.</div>
-          </div>
-        )}
         {picks.map((p, i) => {
           const locked = p.locked && !isPremium
           const isTop = i === 0 && tab === 'main'
@@ -388,8 +369,8 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
               style={isTop ? {borderLeftColor:'var(--green)',boxShadow:'var(--green-glow)'} : {}}
               onClick={() => openDetail(i)}>
               <div className="pick-card-top">
-                <span className="pick-league">{isTop ? '🔥 TOP · ' : ''}{p.league} {p.tier ? (p.tier === 'S' ? '⭐⭐⭐' : p.tier === 'A' ? '⭐⭐' : '⭐') : ''}</span>
-                <span className="pick-time">{(() => { const m={39:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',40:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',42:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',61:'🇫🇷',78:'🇩🇪',79:'🇩🇪',88:'🇳🇱',89:'🇳🇱',94:'🇵🇹',135:'🇮🇹',140:'🇪🇸',141:'🇪🇸',144:'🇧🇪',145:'🇧🇪',162:'🇨🇷',179:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',180:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',188:'🇦🇺',203:'🇹🇷',207:'🇨🇭',208:'🇨🇭',210:'🇭🇷',218:'🇦🇹',239:'🇨🇴',242:'🇪🇨',250:'🇵🇾',251:'🇵🇾',253:'🇺🇸',262:'🇲🇽',265:'🇨🇱',268:'🇺🇾',281:'🇵🇪',282:'🇵🇾',333:'🇺🇦',344:'🇧🇴',345:'🇨🇿',2:'🇪🇺',3:'🇪🇺',11:'🌎',13:'🌎',848:'🇪🇺'}; return m[p.league_id] || '🌍' })()}</span>
+                <span className="pick-league">{isTop ? '🔥 TOP · ' : ''}{p.league}</span>
+                <span className="pick-time">🕐 {p.time} UTC</span>
               </div>
               <div className="pick-teams">{p.home}<span className="vs">vs</span>{p.away}</div>
               <div className="pick-card-footer">
@@ -423,7 +404,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
         <div className="match-header-card">
           <div className="match-league-tag">⚽ {p.league}</div>
           <div className="match-teams-display">{p.home}<span className="match-vs-tag">VS</span>{p.away}</div>
-          <div className="match-time-tag">{(() => { const m={39:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',40:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',61:'🇫🇷',78:'🇩🇪',79:'🇩🇪',88:'🇳🇱',89:'🇳🇱',94:'🇵🇹',135:'🇮🇹',140:'🇪🇸',141:'🇪🇸',144:'🇧🇪',162:'🇨🇷',179:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',188:'🇦🇺',203:'🇹🇷',207:'🇨🇭',210:'🇭🇷',218:'🇦🇹',239:'🇨🇴',242:'🇪🇨',250:'🇵🇾',253:'🇺🇸',262:'🇲🇽',265:'🇨🇱',268:'🇺🇾',281:'🇵🇪',344:'🇧🇴',2:'🇪🇺',3:'🇪🇺',11:'🌎',13:'🌎',848:'🇪🇺'}; return m[p.league_id] || '🌍' })()}</div>
+          <div className="match-time-tag">🕐 {p.time} UTC</div>
         </div>
         {locked ? (
           <div className="locked-pick-box">
@@ -445,35 +426,6 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
               </div>
               <div className="data-row"><span className="data-label">EDGE (EV)</span><span className="data-value g">{evLabel(p.ev)}</span></div>
               <div className="data-row"><span className="data-label">STAKING</span><span className="data-value">💰 {staking(p.conf,p.ev)}</span></div>
-              {(p.lesiones_home?.length > 0 || p.lesiones_away?.length > 0) && (
-                <div className="lesiones-row">
-                  <div className="lesiones-title">🏥 Bajas confirmadas</div>
-                  <div className="lesiones-columnas">
-                    <div className="lesiones-col">
-                      <div className="lesiones-equipo">🔴 {p.home_team || p.home}</div>
-                      {(p.lesiones_home?.length === 0) && <div className="lesion-none">Sin bajas</div>}
-                      {p.lesiones_home?.slice(0,3).map((l,i) => (
-                        <div key={i} className="lesion-card">
-                          <span className="lesion-nombre">{l.nombre}</span>
-                          <span className="lesion-tipo">{l.razon || l.posicion}</span>
-                        </div>
-                      ))}
-                      {p.lesiones_home?.length > 3 && <div className="lesion-mas">+{p.lesiones_home.length - 3} más</div>}
-                    </div>
-                    <div className="lesiones-col">
-                      <div className="lesiones-equipo">🟡 {p.away_team || p.away}</div>
-                      {(p.lesiones_away?.length === 0) && <div className="lesion-none">Sin bajas</div>}
-                      {p.lesiones_away?.slice(0,3).map((l,i) => (
-                        <div key={i} className="lesion-card">
-                          <span className="lesion-nombre">{l.nombre}</span>
-                          <span className="lesion-tipo">{l.razon || l.posicion}</span>
-                        </div>
-                      ))}
-                      {p.lesiones_away?.length > 3 && <div className="lesion-mas">+{p.lesiones_away.length - 3} más</div>}
-                    </div>
-                  </div>
-                </div>
-              )}
               <div className="market-row">
                 <span className={`market-tag ${p.btts?'on':''}`}>BTTS {p.btts?'✓':'✗'}</span>
                 <span className={`market-tag ${p.ou?'on':''}`}>Over 2.5 {p.ou?'✓':'✗'}</span>
@@ -493,9 +445,6 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
             </button>
           </>
         )}
-        <div style={{display:'flex',justifyContent:'center',padding:'8px 0 4px'}}>
-          <button className="back-btn" onClick={view==='analysis' ? backToDetail : backToList} style={{width:'100%',textAlign:'center'}}>← Regresar</button>
-        </div>
         <p className="disclaimer">⚠️ Apuesta con responsabilidad · Solo mayores de 18 años</p>
       </div>
     </div>
@@ -511,7 +460,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
           <div className="analysis-pick-badge">{p.pick}</div>
         </div>
         <div className="analysis-title">ANÁLISIS COMPLETO</div>
-        <div className="analysis-meta">Pipeline 7 agentes IA · {p.league} · {(() => { const m={39:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',40:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',61:'🇫🇷',78:'🇩🇪',79:'🇩🇪',88:'🇳🇱',89:'🇳🇱',94:'🇵🇹',135:'🇮🇹',140:'🇪🇸',141:'🇪🇸',144:'🇧🇪',162:'🇨🇷',179:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',188:'🇦🇺',203:'🇹🇷',207:'🇨🇭',210:'🇭🇷',218:'🇦🇹',239:'🇨🇴',242:'🇪🇨',250:'🇵🇾',253:'🇺🇸',262:'🇲🇽',265:'🇨🇱',268:'🇺🇾',281:'🇵🇪',344:'🇧🇴',2:'🇪🇺',3:'🇪🇺',11:'🌎',13:'🌎',848:'🇪🇺'}; return m[p.league_id] || '🌍' })()}</div>
+        <div className="analysis-meta">Pipeline 7 agentes IA · {p.league} · {p.time} UTC</div>
         {locked ? (
           <div className="analysis-locked-box">
             <div className="locked-icon">🔒</div>
@@ -535,9 +484,6 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
             </div>
           ))
         )}
-        <div style={{display:'flex',justifyContent:'center',padding:'8px 0 4px'}}>
-          <button className="back-btn" onClick={view==='analysis' ? backToDetail : backToList} style={{width:'100%',textAlign:'center'}}>← Regresar</button>
-        </div>
         <p className="disclaimer">⚠️ Apuesta con responsabilidad · Solo mayores de 18 años</p>
       </div>
     </div>
@@ -546,24 +492,7 @@ function PicksScreen({ isPremium, initialIdx, onGoToPremium, picks: realPicksPro
 
 function StatsScreen({ isPremium }) {
   const [stats, setStats] = useState(MOCK_STATS)
-  const [history, setHistory] = useState(MOCK_HISTORY)
-  const [subTab, setSubTab] = useState('resumen')
-  const [pickResults, setPickResults] = useState([])
-  const [filtro, setFiltro] = useState('todos')
-
-  useEffect(() => {
-    fetch(`${API_URL}/picks-results?limit=50`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { if (Array.isArray(data)) setPickResults(data) })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    fetch(`${API_URL}/history`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data && Array.isArray(data)) setHistory(data) })
-      .catch(() => {})
-  }, [])
+  const [history] = useState(MOCK_HISTORY)
 
   useEffect(() => {
     fetchTrackRecord().then(data => {
@@ -613,53 +542,8 @@ function StatsScreen({ isPremium }) {
           <span className="s">🔥 {s.racha} racha</span>
         </div>
       </div>
-      <div style={{display:'flex',gap:8,padding:'0 18px 4px'}}>
-        <button onClick={()=>setSubTab('resumen')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'none',background:subTab==='resumen'?'var(--green)':'var(--bg-card)',color:subTab==='resumen'?'#000':'var(--t2)',fontWeight:700,fontSize:12,letterSpacing:'1px',cursor:'pointer'}}>📊 RESUMEN</button>
-        <button onClick={()=>setSubTab('partidos')} style={{flex:1,padding:'8px 0',borderRadius:8,border:'none',background:subTab==='partidos'?'var(--green)':'var(--bg-card)',color:subTab==='partidos'?'#000':'var(--t2)',fontWeight:700,fontSize:12,letterSpacing:'1px',cursor:'pointer'}}>📋 PARTIDOS</button>
-      </div>
-
-      {subTab==='partidos' && (
-        <div style={{padding:'0 18px'}}>
-          <div style={{display:'flex',gap:6,marginBottom:12}}>
-            {['todos','ganados','perdidos'].map(f=>(
-              <button key={f} onClick={()=>setFiltro(f)} style={{flex:1,padding:'6px 0',borderRadius:6,border:'none',background:filtro===f?'var(--bg-3)':'var(--bg-card)',color:filtro===f?'var(--green)':'var(--t3)',fontWeight:700,fontSize:11,letterSpacing:'1px',cursor:'pointer',textTransform:'uppercase'}}>{f==='todos'?'Todos':f==='ganados'?'✅ Ganados':'❌ Perdidos'}</button>
-            ))}
-          </div>
-          {pickResults.length===0 ? (
-            <div style={{textAlign:'center',padding:'32px 0',color:'var(--t3)',fontSize:13}}>⏳ Los resultados aparecen después de verificación nocturna</div>
-          ) : (
-            pickResults
-              .filter(p=>filtro==='todos'?true:filtro==='ganados'?p.acertado===true:p.acertado===false)
-              .map((p,i)=>(
-                <div key={i} style={{background:'var(--bg-card)',borderRadius:12,marginBottom:10,overflow:'hidden',boxShadow:p.acertado?'0 0 12px rgba(0,255,120,0.08)':'0 0 12px rgba(231,76,60,0.08)',border:`1px solid ${p.acertado?'rgba(0,255,120,0.2)':'rgba(231,76,60,0.2)'}`}}>
-                  <div style={{background:p.acertado?'rgba(0,255,120,0.10)':'rgba(231,76,60,0.10)',padding:'6px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontSize:10,color:'var(--t3)',letterSpacing:'1.5px',textTransform:'uppercase'}}>{p.league}</span>
-                    <span style={{fontSize:11,fontWeight:800,letterSpacing:'1px',color:p.acertado?'var(--green)':'#e74c3c'}}>{p.acertado?'✅ GANADO':'❌ PERDIDO'}</span>
-                  </div>
-                  <div style={{padding:'10px 14px'}}>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                      <div style={{fontSize:14,fontWeight:700,color:'var(--t1)'}}>{p.home_team}<span style={{color:'var(--t3)',fontWeight:300,margin:'0 6px'}}>vs</span>{p.away_team}</div>
-                      {p.resultado_real && <div style={{background:'var(--bg-3)',borderRadius:6,padding:'3px 10px',fontSize:13,fontWeight:800,color:'var(--t1)',letterSpacing:'2px'}}>{p.resultado_real}</div>}
-                    </div>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <div style={{background:'rgba(255,78,27,0.12)',borderRadius:6,padding:'4px 10px'}}>
-                        <span style={{fontSize:11,fontWeight:700,color:'var(--orange)'}}>{p.pick_principal}</span>
-                      </div>
-                      <div style={{textAlign:'right'}}>
-                        <span style={{fontSize:12,fontWeight:700,color:'var(--t2)'}}>@{p.odd_pick||'—'}</span>
-                        <span style={{fontSize:10,color:'var(--t3)',marginLeft:8}}>{p.match_date}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-          )}
-        </div>
-      )}
-
-      {subTab==='resumen' && <div className="section-label">HISTORIAL MENSUAL</div>}
-      {subTab==='resumen' && <div style={{display:'none'}} />}
-      <div className="history-chart" style={{display:subTab==='resumen'?'flex':'none'}}>
+      <div className="section-label">HISTORIAL MENSUAL</div>
+      <div className="history-chart">
         {history.map((h, i) => (
           <div key={i} className="chart-col">
             <div className="chart-pct">{h.pct}%</div>
@@ -670,8 +554,8 @@ function StatsScreen({ isPremium }) {
           </div>
         ))}
       </div>
-      <div className="stats-verified" style={{display:subTab==='resumen'?'block':'none'}}>✅ Verificado API-Football Pro · Actualizado nightly 23:00</div>
-      <div className="history-table" style={{display:subTab==='resumen'?'block':'none'}}>
+      <div className="stats-verified">✅ Verificado API-Football Pro · Actualizado nightly 23:00</div>
+      <div className="history-table">
         <div className="history-table-header">
           <span>MES</span><span>PICKS</span><span>ACIERTO</span><span>YIELD</span>
         </div>
@@ -687,7 +571,7 @@ function StatsScreen({ isPremium }) {
   )
 }
 
-function PremiumScreen({ isPremium, chatId, premiumUntil }) {
+function PremiumScreen({ isPremium, chatId }) {
   const [lemonUrl, setLemonUrl] = useState('https://nura.lemonsqueezy.com/checkout/buy/ac29116a-8103-4236-9287-621edda68e5c')
 
   useEffect(() => {
@@ -710,11 +594,11 @@ function PremiumScreen({ isPremium, chatId, premiumUntil }) {
       <div className="premium-active-wrap">
         <div className="premium-active-title">CUENTA PREMIUM</div>
         <div className="premium-active-status">👑 ACTIVA</div>
-        <div className="premium-active-until">Válido hasta: {premiumUntil ? premiumUntil.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'}) : '—'}</div>
+        <div className="premium-active-until">Válido hasta: 06 de Mayo, 2026</div>
         <div className="premium-perks">
           {[
-            ['📅', 'Picks diarios completos', '5+ picks con análisis por jornada'],
-            
+            ['📅', 'Picks diarios completos', '10+ picks con análisis por jornada'],
+            ['🎲', 'Cuotas Altas', 'Picks de alto valor desbloqueados'],
             ['⚡', 'Análisis on-demand', '15 análisis por día con pipeline IA'],
             ['📋', 'Análisis completo', 'Forma · H2H · Poisson · 7 Agentes'],
             ['⚽', 'Todos los mercados', '1X2 · BTTS · Over/Under · Doble Chance'],
@@ -740,9 +624,9 @@ function PremiumScreen({ isPremium, chatId, premiumUntil }) {
       <div className="premium-features-grid">
         {[
           ['⚡', '15 análisis/día', 'on-demand con IA'],
-          ['🎯', '5+ picks', 'por jornada'],
+          ['🎯', '10+ picks', 'por jornada'],
           ['📊', 'Track record', 'verificado'],
-          
+          ['💎', 'Cuotas Altas', 'valor extremo'],
         ].map(([icon, title, sub], i) => (
           <div key={i} className="premium-feature-card">
             <div className="premium-feature-icon">{icon}</div>
@@ -756,11 +640,11 @@ function PremiumScreen({ isPremium, chatId, premiumUntil }) {
           <div></div><div>FREE</div><div>PREMIUM</div>
         </div>
         {[
-          ['Picks del día',       '2',     '5+'],
+          ['Picks del día',       '2',     '10+'],
           ['Análisis por pick',   '🔒',    '✅'],
-          
+          ['Cuotas Altas',        '🔒',    '✅'],
           ['Análisis on-demand',  '1/día', '15/día'],
-          
+          ['BTTS & Over/Under',   '🔒',    '✅'],
           ['AI Edge badge',       '🔒',    '✅'],
           ['Staking & Edge (EV)', '🔒',    '✅'],
           ['Track record',        '✅',    '✅'],
@@ -803,19 +687,11 @@ function PremiumScreen({ isPremium, chatId, premiumUntil }) {
         </div>
       </div>
       <div style={{padding:'0 18px 10px'}}>
-        <button className="btn-primary" onClick={async () => { try { const uid = chatId || WebApp?.initDataUnsafe?.user?.id || 0; const r = await fetch(`${API_URL}/create-invoice-link`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id: uid, plan:'mensual'})}); const d = await r.json(); if(d.invoice_url){ window.Telegram.WebApp.openInvoice(d.invoice_url, (status) => { if(status==='paid') WebApp.showPopup({title:'✅ ¡Pago exitoso!', message:'Tu cuenta Premium está activa.', buttons:[{type:'ok'}]}) }) } else { alert('Error: ' + (d.error||'Sin URL')) } } catch(e){ alert('Error: ' + e.message) } }}>⭐ Mensual — 1,462 Stars</button>
-      </div>
-      <div style={{padding:'0 18px 6px'}}>
-        <button className="btn-primary" onClick={async () => { try { const uid = chatId || WebApp?.initDataUnsafe?.user?.id || 0; const r = await fetch(`${API_URL}/create-invoice-link`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id: uid, plan:'trimestral'})}); const d = await r.json(); if(d.invoice_url){ window.Telegram.WebApp.openInvoice(d.invoice_url, (status) => { if(status==='paid') WebApp.showPopup({title:'✅ ¡Pago exitoso!', message:'Tu cuenta Premium está activa.', buttons:[{type:'ok'}]}) }) } else { alert('Error: ' + (d.error||'Sin URL')) } } catch(e){ alert('Error: ' + e.message) } }}>⭐ Trimestral — 3,769 Stars</button>
-      </div>
-      <div style={{padding:'0 18px 6px'}}>
-        <button className="btn-primary" onClick={async () => { try { const uid = chatId || WebApp?.initDataUnsafe?.user?.id || 0; const r = await fetch(`${API_URL}/create-invoice-link`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id: uid, plan:'anual'})}); const d = await r.json(); if(d.invoice_url){ window.Telegram.WebApp.openInvoice(d.invoice_url, (status) => { if(status==='paid') WebApp.showPopup({title:'✅ ¡Pago exitoso!', message:'Tu cuenta Premium está activa.', buttons:[{type:'ok'}]}) }) } else { alert('Error: ' + (d.error||'Sin URL')) } } catch(e){ alert('Error: ' + e.message) } }}>⭐ Anual — 11,462 Stars</button>
+        <button className="btn-primary">⭐ PAGAR CON TELEGRAM STARS</button>
       </div>
       <div style={{padding:'0 18px 10px'}}>
-        <button className="btn-secondary" onClick={() => lemonUrl && window.open(lemonUrl, '_blank')} style={{background:'linear-gradient(135deg,#0070ba,#003087)',border:'none',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:10,fontSize:14,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',width:'100%',height:'54px',borderRadius:'12px'}}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" fill="#fff" fillOpacity=".2"/><rect x="2" y="9" width="20" height="3" fill="#fff" fillOpacity=".5"/><rect x="5" y="14" width="5" height="2" rx="1" fill="#fff"/></svg>
-          <span>Tarjeta · PayPal</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M7.076 21.337H4.272a.641.641 0 0 1-.633-.74L6.29 3.042a.774.774 0 0 1 .764-.647h5.294c2.33 0 3.954.513 4.822 1.524.84.977.989 2.316.442 3.979-.021.065-.042.13-.065.197C16.533 10.59 14.87 12 11.4 12H9.5a.774.774 0 0 0-.764.647l-.66 4.19-.362 2.3a.384.384 0 0 1-.379.323z" fill="#fff"/><path d="M19.237 8.623c-.44 2.86-2.61 4.577-5.925 4.577H11.8l-1.04 6.595a.384.384 0 0 1-.38.322H7.888l.36-2.3.66-4.19a.774.774 0 0 1 .764-.647h1.9c3.47 0 5.133-1.41 5.147-4.279.004-.65-.105-1.2-.322-1.658.49.27.852.695 1.05 1.38z" fill="#fff" fillOpacity=".7"/></svg>
+        <button className="btn-secondary" onClick={() => lemonUrl && window.open(lemonUrl, '_blank')}>
+          💳 PAGAR CON TARJETA
         </button>
       </div>
       <div className="pay-note">✅ Acceso inmediato · ✅ Sin permanencia · ✅ Cancela cuando quieras</div>
@@ -833,12 +709,12 @@ const AGENT_STEPS = [
   'Agente 7 — Guardando en memoria...',
 ]
 
-function AnalyzeScreen({ isPremium, onGoToPremium, remaining }) {
+function AnalyzeScreen({ isPremium, onGoToPremium }) {
   const [input,   setInput]   = useState('')
   const [loading, setLoading] = useState(false)
   const [step,    setStep]    = useState(0)
   const [result,  setResult]  = useState(null)
-  
+  const remaining = isPremium ? 15 : 1
   const stepRef = useRef(null)
   const canAnalyze = input.toLowerCase().includes('vs') && input.trim().length > 6
 
@@ -882,7 +758,7 @@ function AnalyzeScreen({ isPremium, onGoToPremium, remaining }) {
     <div className="screen">
       <AppHeader isPremium={isPremium} />
       <div className="screen-title">ANÁLISIS ON-DEMAND</div>
-      <div className="analyze-remaining">✅ {remaining ?? (isPremium ? 15 : 1)} análisis restantes · 7 agentes IA</div>
+      <div className="analyze-remaining">✅ {remaining} análisis restantes · 7 agentes IA</div>
       <div className="analyze-form">
         <input className="analyze-input" placeholder="Barcelona vs Real Madrid"
           value={input} onChange={e => { setInput(e.target.value); setResult(null) }}
@@ -966,61 +842,29 @@ export default function App() {
   const [isPremium, setIsPremium] = useState(false)
   const [pickIdx,   setPickIdx]   = useState(null)
   const [realPicks, setRealPicks] = useState(null)
-  const [realRisky, setRealRisky] = useState([])
   const [realStats, setRealStats] = useState(null)
   const [chatId,    setChatId]    = useState(null)
-  const [premiumUntil, setPremiumUntil] = useState(null)
-  const [remaining,    setRemaining]    = useState(null)
 
   useEffect(() => {
     try { WebApp.ready() } catch(e) {}
-    const tryGetId = () => {
-      const tg = window.Telegram?.WebApp
-      const user = tg?.initDataUnsafe?.user
-      let initDataId = null
-      try {
-        const initData = new URLSearchParams(tg?.initData || '')
-        const userStr = initData.get('user')
-        if (userStr) initDataId = JSON.parse(userStr)?.id
-      } catch(e) {}
-      const urlParams = new URLSearchParams(window.location.search)
-      const urlChatId = urlParams.get('chat_id')
-      return user?.id || initDataId || (urlChatId ? parseInt(urlChatId) : null)
-    }
-    const loadUser = (resolvedId) => {
-      if (!resolvedId) return
-      setChatId(resolvedId)
-      fetch(`${API_URL}/user/${resolvedId}`)
+    const user = WebApp.initDataUnsafe?.user
+    if (user?.id) {
+      setChatId(user.id)
+      fetch(`${API_URL}/user/${user.id}`)
         .then(r => r.json())
         .then(data => {
-          if (data.plan === 'premium') {
-            if (data.premium_until) {
-              const exp = new Date(data.premium_until)
-              if (exp > new Date()) {
-                setIsPremium(true)
-                setPremiumUntil(exp)
-              }
-            } else {
-              setIsPremium(true)
-            }
+          if (data.plan === 'premium' && data.premium_until) {
+            const exp = new Date(data.premium_until)
+            if (exp > new Date()) setIsPremium(true)
           }
-          const limit = data.plan === 'premium' ? 15 : 1
-          setRemaining(limit - (data.analyses_today || 0))
         })
         .catch(() => {})
-    }
-    const id1 = tryGetId()
-    if (id1) {
-      loadUser(id1)
-    } else {
-      setTimeout(() => loadUser(tryGetId()), 800)
     }
   }, [])
 
   useEffect(() => {
-    fetchDailyTips().then(data => {
-      if (data && data.top_picks.length > 0) setRealPicks(data.top_picks)
-      if (data) setRealRisky(data.picks_arriesgados || [])
+    fetchDailyTips().then(picks => {
+      if (picks && picks.length > 0) setRealPicks(picks)
     })
     fetchTrackRecord().then(data => {
       if (data && data.available) setRealStats({
@@ -1042,13 +886,16 @@ export default function App() {
   return (
     <div className="app">
       <div className="content">
-        {screen==='home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks} onGoToPremium={goToPremium} picks={realPicks||[]} stats={realStats} />}
-        {screen==='picks'   && <PicksScreen   isPremium={isPremium} initialIdx={pickIdx}    onGoToPremium={goToPremium} picks={realPicks||[]} riskyPicks={realRisky} />}
+        {screen==='home'    && <HomeScreen    isPremium={isPremium} onGoToPicks={goToPicks} onGoToPremium={goToPremium} picks={realPicks||MOCK_PICKS} stats={realStats} />}
+        {screen==='picks'   && <PicksScreen   isPremium={isPremium} initialIdx={pickIdx}    onGoToPremium={goToPremium} picks={realPicks||MOCK_PICKS} />}
         {screen==='stats'   && <StatsScreen   isPremium={isPremium} />}
-        {screen==='premium' && <PremiumScreen isPremium={isPremium} chatId={chatId} premiumUntil={premiumUntil} />}
-        {screen==='analyze' && <AnalyzeScreen isPremium={isPremium} onGoToPremium={goToPremium} remaining={remaining} />}
+        {screen==='premium' && <PremiumScreen isPremium={isPremium} chatId={chatId} />}
+        {screen==='analyze' && <AnalyzeScreen isPremium={isPremium} onGoToPremium={goToPremium} />}
       </div>
       <BottomNav active={screen} onNav={handleNav} />
+      <button className="dev-toggle" onClick={() => setIsPremium(p => !p)}>
+        {isPremium ? '→ FREE' : '→ PRO'}
+      </button>
     </div>
   )
 }

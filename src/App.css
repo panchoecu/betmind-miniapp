@@ -376,4 +376,19 @@ input  { font-family: inherit; }
 .nav-btn.active .nav-label { color: var(--orange); }
 
 /* ═══ DEV TOGGLE ══════════════════════════════════════════════ */
-.dev-toggle { position: fixed; top: 10px; right: 10px; z-index: 999; background: var(--bg-3); color: var(--t3); border: 1px solid var(--bg-4); border-radius: 6px; padding: 5px 12px; font-family: var(--fm); font-size: 9px; letter-spacing: 1px; }
+.dev-toggle { position: fixed; top: 10px; right: 10px; z-index: 999; background: var(--bg-3); color: var(--t3); border: 1px solid var(--bg-4); border-radius: 6px; padding: 5px 12px; font-family: var(--fm); font-size: 9px; letter-spacing: 1px; }/* Empty picks */
+.empty-picks-card { background: var(--bg-card); border-radius: var(--r-md); margin-bottom: 16px; }
+
+/* Lesiones */
+.lesiones-row { background: rgba(255,160,0,0.08); border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; border-left: 3px solid var(--orange); }
+.lesiones-title { font-size: 11px; font-weight: 700; color: var(--orange); letter-spacing: 0.5px; margin-bottom: 10px; text-align: center; }
+.lesiones-columnas { display: flex; gap: 8px; }
+.lesiones-col { flex: 1; background: rgba(255,255,255,0.04); border-radius: 8px; padding: 8px; }
+.lesiones-equipo { font-size: 10px; font-weight: 700; color: var(--orange); margin-bottom: 6px; letter-spacing: 0.3px; }
+.lesion-card { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.lesion-card:last-child { border-bottom: none; margin-bottom: 0; }
+.lesion-nombre { display: block; font-size: 11px; font-weight: 600; color: #fff; }
+.lesion-tipo { display: block; font-size: 10px; color: #f59e0b; margin-top: 1px; }
+.lesion-none { font-size: 10px; color: rgba(255,255,255,0.4); font-style: italic; }
+.lesion-mas { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 4px; font-style: italic; }
+.lesion-item { font-size: 12px; color: var(--t2); padding: 2px 0; }
